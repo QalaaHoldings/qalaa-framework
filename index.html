@@ -269,7 +269,7 @@ const BD_DIRECTOR = {
   email: 'hossam.negm@asec-holding.com',
   phone: '+201222845454'
 };
-const TOOL_URL = 'https://qalaa-framework.netlify.app';
+const TOOL_URL = 'https://qalaaholdings.github.io/qalaa-framework/';
 
 function waLink(phone,msg){
   const clean=phone.replace(/\D/g,'');
@@ -616,7 +616,7 @@ function viewReferral(id){
       </div>`:''}
     ${(()=>{
       const subject=`Qalaa Framework — Update on ${r.id}: ${r.client}`;
-      const msg=`Dear Contact,\n\nThis is an update regarding referral ${r.id} (${r.client}).\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nStatus: ${r.status}\nEstimated value: ${fmt(r.value)}${r.collected>0?`\nIncentive due: ${fmt(Math.round(r.collected*0.005))}\nOutstanding: ${fmt(Math.round(r.collected*0.005)-r.incentivePaid)}`:''}\n\nPlease log in to the Qalaa Framework tool for full details.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+      const msg=`Dear Contact,\n\nThis is an update regarding referral ${r.id} (${r.client}).\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nStatus: ${r.status}\nEstimated value: ${fmt(r.value)}${r.collected>0?`\nIncentive due: ${fmt(Math.round(r.collected*0.005))}\nOutstanding: ${fmt(Math.round(r.collected*0.005)-r.incentivePaid)}`:''}\n\nPlease log in to the Qalaa Framework tool for full details.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
       return notifyPanel([r.referring,r.receiving],subject,msg);
     })()}
     <div class="modal-footer">
@@ -631,7 +631,7 @@ function approveReferral(id){
   if(!r) return;
   r.referralStatus='approved'; r.status=r.status==='Pending approval'?'In negotiation':r.status;
   const subject=`Qalaa Framework — Referral ${r.id} Approved`;
-  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has been APPROVED by the Group BD Director.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\nThe receiving company may now proceed with the opportunity.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has been APPROVED by the Group BD Director.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\nThe receiving company may now proceed with the opportunity.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
   openModal(`<h3>Referral ${r.id} — Approved</h3>
     <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Referral approved. Notify the companies below.</div>
@@ -644,7 +644,7 @@ function rejectReferral(id){
   if(!r) return;
   r.referralStatus='rejected'; r.status='Rejected';
   const subject=`Qalaa Framework — Referral ${r.id} Not Approved`;
-  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has not been approved at this time.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\n\nPlease contact the Group BD Director for further information.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has not been approved at this time.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\n\nPlease contact the Group BD Director for further information.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
   openModal(`<h3>Referral ${r.id} — Rejected</h3>
     <div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Referral rejected. Notify the companies below.</div>
@@ -657,7 +657,7 @@ function markPaid(id){
   if(!r) return;
   r.incentivePaid=Math.round(r.collected*0.005);
   const subject=`Qalaa Framework — Incentive Payment Processed for ${r.id}`;
-  const msg=`Dear Contact,\n\nThe referral incentive for ${r.id} (${r.client}) has been marked as PAID.\n\nReferring company: ${r.referring}\nAmount paid: ${fmt(r.incentivePaid)}\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  const msg=`Dear Contact,\n\nThe referral incentive for ${r.id} (${r.client}) has been marked as PAID.\n\nReferring company: ${r.referring}\nAmount paid: ${fmt(r.incentivePaid)}\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
   openModal(`<h3>Incentive Paid — ${r.id}</h3>
     <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Incentive marked as paid. Notify the referring company below.</div>
@@ -699,7 +699,7 @@ function submitNewReferral(){
   const id=`REF-${String(REFERRALS.length+1).padStart(3,'0')}`;
   REFERRALS.push({id,date,referring:ref,receiving:rec,client,desc,value,status:'Pending approval',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'pending'});
   const subject=`Qalaa Framework — New Referral Registered: ${id}`;
-  const msg=`Dear Contact,\n\nA new referral has been registered in the Qalaa Framework.\n\nReferral ID: ${id}\nClient: ${client}\nOpportunity: ${desc}\nEstimated value: EGP ${Number(value).toLocaleString()}\nReferring company: ${ref}\nReceiving company: ${rec}\n\nThis referral is pending approval by the Group BD Director.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  const msg=`Dear Contact,\n\nA new referral has been registered in the Qalaa Framework.\n\nReferral ID: ${id}\nClient: ${client}\nOpportunity: ${desc}\nEstimated value: EGP ${Number(value).toLocaleString()}\nReferring company: ${ref}\nReceiving company: ${rec}\n\nThis referral is pending approval by the Group BD Director.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
   openModal(`<h3>Referral Registered — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Referral registered successfully. Notify the companies below.</div>
@@ -910,7 +910,7 @@ function submitSourcing(){
   const id=`SRC-${String(SOURCING.length+1).padStart(3,'0')}`;
   SOURCING.push({id,date:today(),buyer,provider,service,value,status:'Pending response',responseDeadline:due,externalUsed:false});
   const subject=`Qalaa Framework — New Sourcing Request: ${id}`;
-  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
   openModal(`<h3>Sourcing Request Submitted — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Sourcing request submitted. Notify the companies below.</div>
