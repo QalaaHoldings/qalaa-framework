@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qalaa Holdings — Framework Operations Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f4;--surface:#fff;--surface2:#f1f0ed;--border:#e2e0db;--border2:#ccc;
+  --text:#1a1a18;--text2:#555;--text3:#888;
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-light:#B5D4F4;
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-light:#C0DD97;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-light:#FAC775;
+  --red:#A32D2D;--red-bg:#FCEBEB;--red-light:#F7C1C1;
+  --purple:#3C3489;--purple-bg:#EEEDFE;--purple-light:#CECBF6;
+  --teal:#0F6E56;--teal-bg:#E1F5EE;--teal-light:#9FE1CB;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+a{color:var(--blue)}
+button{cursor:pointer;font-family:inherit;font-size:13px}
+input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius);padding:7px 10px;width:100%;outline:none;background:var(--surface);color:var(--text)}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:500}
+textarea{resize:vertical;min-height:70px}
+
+/* Layout */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0}
+.sidebar-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.sidebar-logo h1{font-size:15px;font-weight:600;color:var(--text)}
+.sidebar-logo p{font-size:11px;color:var(--text3);margin-top:2px}
+.sidebar-nav{padding:10px 8px;flex:1}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:10px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;border:none;background:none;width:100%;text-align:left;margin-bottom:1px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue);font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active svg{opacity:1}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border)}
+.role-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:5px 10px;border-radius:20px;background:var(--purple-bg);color:var(--purple)}
+
+.main{flex:1;overflow-x:hidden}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between}
+.topbar h2{font-size:17px;font-weight:600}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.content{padding:24px 28px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:#0c447c}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-danger{background:var(--red-bg);color:var(--red);border-color:var(--red-light)}
+.btn-success{background:var(--green-bg);color:var(--green);border-color:var(--green-light)}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.card-sm{padding:14px 16px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface2);border-radius:var(--radius);padding:14px 16px}
+.stat-label{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:24px;font-weight:600;color:var(--text)}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-teal{background:var(--teal-bg);color:var(--teal)}
+.badge-gray{background:var(--surface2);color:var(--text2)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;background:var(--surface)}
+th{background:var(--surface2);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+
+/* Forms */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:14px}
+.form-row{display:flex;gap:14px}
+.form-row .form-group{flex:1}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:18px}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;line-height:1}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--surface2);border-radius:var(--radius);padding:3px;margin-bottom:20px;width:fit-content}
+.tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);border:none;background:none}
+.tab.active{background:var(--surface);color:var(--text)}
+
+/* Alerts */
+.alert{padding:12px 16px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.alert-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-light)}
+.alert-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-light)}
+.alert-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-light)}
+.alert-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-light)}
+
+/* Timeline */
+.timeline{padding-left:24px;border-left:2px solid var(--border)}
+.tl-item{position:relative;padding-bottom:16px;padding-left:16px}
+.tl-dot{position:absolute;left:-25px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--surface)}
+.tl-date{font-size:11px;color:var(--text3)}
+.tl-text{font-size:13px;color:var(--text);margin-top:2px}
+
+/* Fine calc */
+.fine-display{background:var(--red-bg);border:1px solid var(--red-light);border-radius:var(--radius);padding:14px;text-align:center}
+.fine-amount{font-size:28px;font-weight:700;color:var(--red)}
+.fine-label{font-size:12px;color:var(--red);margin-top:4px}
+
+/* Progress bar */
+.progress{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:3px;background:var(--blue)}
+
+/* Search */
+.search-bar{display:flex;gap:8px;align-items:center;margin-bottom:18px}
+.search-bar input{max-width:280px}
+.search-bar select{max-width:160px}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty svg{width:40px;height:40px;opacity:.3;margin:0 auto 12px;display:block}
+
+/* Role selector */
+.role-selector{padding:20px;border-bottom:1px solid var(--border)}
+.role-selector label{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;text-transform:uppercase}
+.role-selector select{font-size:12px}
+
+/* Notification dot */
+.notif-dot{width:7px;height:7px;background:#e24b4a;border-radius:50%;display:inline-block;margin-left:auto}
+
+/* Responsive tweaks */
+@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}.sidebar{width:190px;min-width:190px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h1>Qalaa Holdings</h1>
+    <p>Framework Operations</p>
+  </div>
+  <div class="role-selector">
+    <label>Viewing as</label>
+    <select id="roleSelect" onchange="changeRole(this.value)">
+      <option value="keeper">Process Keeper (BD Director)</option>
+      <option value="referring">Referring Company</option>
+      <option value="receiving">Receiving Company</option>
+    </select>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <button class="nav-item active" onclick="showPage('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" onclick="showPage('referrals')" id="nav-referrals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Referrals
+      <span class="notif-dot" id="dot-referrals" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('approvals')" id="nav-approvals">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Approvals
+      <span class="notif-dot" id="dot-approvals" style="display:none"></span>
+    </button>
+    <div class="nav-section">Finance</div>
+    <button class="nav-item" onclick="showPage('payments')" id="nav-payments">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      Incentive payments
+      <span class="notif-dot" id="dot-payments" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('fines')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Late payment fines
+    </button>
+    <div class="nav-section">Sourcing</div>
+    <button class="nav-item" onclick="showPage('sourcing')" id="nav-sourcing">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+      Intra-group sourcing
+    </button>
+    <div class="nav-section">Admin</div>
+    <button class="nav-item" onclick="showPage('companies')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Companies
+    </button>
+    <button class="nav-item" onclick="showPage('reports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Reports & export
+    </button>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="role-badge" id="roleLabel">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      BD Director
+    </div>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+  <div class="topbar">
+    <h2 id="pageTitle">Dashboard</h2>
+    <div class="topbar-actions" id="topbarActions"></div>
+  </div>
+  <div class="content" id="mainContent"></div>
+</div>
+
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBox">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const COMPANIES = [
+  "Asec Engineering","Asec Automation ASA","ARESCO","ASCOM","United for Foundries UCF",
+  "GlassRock","OSTOOL","Nile Logistics","Taqa Gas","Taqa Power","Taqa Petroleum",
+  "Taqa Water","Dina Farms","ERC","ACCM","Qalaa","GP Business Development"
+];
+
+// ── CONTACTS (editable per company) ───────────────────────────────────────
+const CONTACTS = {
+  "Asec Engineering":        {name:'',phone:'',email:''},
+  "Asec Automation ASA":     {name:'',phone:'',email:''},
+  "ARESCO":                  {name:'',phone:'',email:''},
+  "ASCOM":                   {name:'',phone:'',email:''},
+  "United for Foundries UCF":{name:'',phone:'',email:''},
+  "GlassRock":               {name:'',phone:'',email:''},
+  "OSTOOL":                  {name:'',phone:'',email:''},
+  "Nile Logistics":          {name:'',phone:'',email:''},
+  "Taqa Gas":                {name:'',phone:'',email:''},
+  "Taqa Power":              {name:'',phone:'',email:''},
+  "Taqa Petroleum":          {name:'',phone:'',email:''},
+  "Taqa Water":              {name:'',phone:'',email:''},
+  "Dina Farms":              {name:'',phone:'',email:''},
+  "ERC":                     {name:'',phone:'',email:''},
+  "ACCM":                    {name:'',phone:'',email:''},
+  "Qalaa":                   {name:'',phone:'',email:''},
+  "GP Business Development": {name:'',phone:'',email:''},
+};
+
+function getContact(co){ return CONTACTS[co]||{name:'',phone:'',email:''} }
+
+// ── BD DIRECTOR (always notified) ─────────────────────────────────────────
+const BD_DIRECTOR = {
+  name:  'Hossam Negm',
+  email: 'hossam.negm@asec-holding.com',
+  phone: '+201222845454'
+};
+const TOOL_URL = 'https://qalaa-framework.netlify.app';
+
+function waLink(phone,msg){
+  const clean=phone.replace(/\D/g,'');
+  return `https://wa.me/${clean}?text=${encodeURIComponent(msg)}`;
+}
+
+function notifyPanel(companies, subject, msgBody){
+  if(!companies||companies.length===0) return '';
+
+  // Always include BD Director row
+  const bdEmailBtn=`<a href="mailto:${BD_DIRECTOR.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msgBody)}" class="btn btn-sm" style="text-decoration:none" title="Email ${BD_DIRECTOR.name}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> Email</a>`;
+  const bdWABtn=`<a href="${waLink(BD_DIRECTOR.phone,msgBody)}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--purple-bg);color:var(--purple);border-color:var(--purple-light)" title="WhatsApp ${BD_DIRECTOR.name}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg> WhatsApp</a>`;
+  const bdRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--blue-light);background:var(--purple-bg);margin:0 -14px;padding-left:14px;padding-right:14px">
+    <span style="font-size:12px;font-weight:600;color:var(--purple)">★ ${BD_DIRECTOR.name} <span style="font-weight:400;color:var(--purple);opacity:.7">— Group BD Director</span></span>
+    <div style="display:flex;gap:6px">${bdEmailBtn}${bdWABtn}</div>
+  </div>`;
+
+  const rows=companies.filter(Boolean).map(co=>{
+    const c=getContact(co);
+    const hasEmail=c.email&&c.email.trim();
+    const hasPhone=c.phone&&c.phone.trim();
+    const nameTag=c.name?` <span style="color:var(--text3);font-weight:400">— ${c.name}</span>`:'';
+    const eBtn=hasEmail
+      ?`<a href="mailto:${c.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msgBody)}" class="btn btn-sm" style="text-decoration:none"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> Email</a>`
+      :`<span class="btn btn-sm" style="opacity:.35;cursor:not-allowed" title="No email set for ${co}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> Email</span>`;
+    const wBtn=hasPhone
+      ?`<a href="${waLink(c.phone,msgBody)}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--green-bg);color:var(--green);border-color:var(--green-light)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg> WhatsApp</a>`
+      :`<span class="btn btn-sm" style="opacity:.35;cursor:not-allowed;background:var(--green-bg);color:var(--green);border-color:var(--green-light)" title="No phone set for ${co}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg> WhatsApp</span>`;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;font-weight:600">${co}${nameTag}</span>
+      <div style="display:flex;gap:6px">${eBtn}${wBtn}</div>
+    </div>`;
+  }).join('');
+  return `<div style="background:var(--blue-bg);border:1px solid var(--blue-light);border-radius:var(--radius);padding:14px;margin-top:16px">
+    <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:10px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px"><path d="M22 17H2a3 3 0 000 6h16a3 3 0 000-6z"/><path d="M16 3H5a3 3 0 000 6h11"/><path d="M12 3v6"/></svg>
+      Notify companies
+    </div>
+    ${bdRow}
+    <div style="margin-top:4px">${rows}</div>
+    ${!companies.some(co=>{ const c=getContact(co); return c.email||c.phone; })?'<p style="font-size:11px;color:var(--blue);margin-top:6px">⚠ No contacts set yet — go to Companies to add contact details.</p>':''}
+  </div>`;
+}
+
+let currentRole = 'keeper';
+
+const REFERRALS = [
+  {id:'REF-001',date:'2025-03-10',referring:'Asec Engineering',receiving:'Nile Logistics',client:'National Housing Authority',desc:'Civil construction works for 3 affordable housing complexes',value:12500000,status:'Secured',secured:12500000,collected:7500000,incentivePaid:0,paymentDue:'2025-05-01',referralStatus:'approved'},
+  {id:'REF-002',date:'2025-03-22',referring:'Nile Logistics',receiving:'Asec Engineering',client:'Cairo Airport Authority',desc:'Engineering consultancy for runway expansion',value:4200000,status:'In negotiation',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'approved'},
+  {id:'REF-003',date:'2025-04-05',referring:'Taqa Power',receiving:'ARESCO',client:'Orascom Construction',desc:'Electrical installation works for new industrial zone',value:3800000,status:'Pending approval',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'pending'},
+  {id:'REF-004',date:'2025-04-14',referring:'GlassRock',receiving:'United for Foundries UCF',client:'New Administrative Capital',desc:'Structural steel and glazing supply for government towers',value:28000000,status:'Secured',secured:28000000,collected:28000000,incentivePaid:140000,paymentDue:'2025-04-30',referralStatus:'approved'},
+  {id:'REF-005',date:'2025-04-20',referring:'Asec Automation ASA',receiving:'Nile Logistics',client:'East Port Said Industrial Zone',desc:'Port logistics and freight management',value:6500000,status:'Pending approval',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'pending'},
+  {id:'REF-006',date:'2025-05-01',referring:'ERC',receiving:'Taqa Petroleum',client:'Upper Egypt Petroleum Authority',desc:'Petroleum services feasibility study and EPC',value:45000000,status:'In negotiation',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'approved'},
+  {id:'REF-007',date:'2025-05-08',referring:'Dina Farms',receiving:'ASCOM',client:'Suez Canal Economic Zone',desc:'Agricultural commodities supply for zone operations',value:18000000,status:'Secured',secured:18000000,collected:9000000,incentivePaid:0,paymentDue:'2025-06-01',referralStatus:'approved'},
+];
+
+const SOURCING = [
+  {id:'SRC-001',date:'2025-03-15',buyer:'ARESCO',provider:'Nile Logistics',service:'Transport & logistics for construction materials',value:850000,status:'Completed',responseDeadline:'2025-03-22',externalUsed:false},
+  {id:'SRC-002',date:'2025-04-02',buyer:'United for Foundries UCF',provider:'Asec Engineering',service:'Structural review and engineering sign-off',value:320000,status:'In progress',responseDeadline:'2025-04-12',externalUsed:false},
+  {id:'SRC-003',date:'2025-04-18',buyer:'Taqa Power',provider:'GlassRock',service:'Glazing and facade materials for HQ refurb',value:1200000,status:'Pending response',responseDeadline:'2025-04-28',externalUsed:false},
+  {id:'SRC-004',date:'2025-05-02',buyer:'Dina Farms',provider:'OSTOOL',service:'Equipment maintenance and fleet services',value:95000,status:'Completed',responseDeadline:'2025-05-09',externalUsed:false},
+  {id:'SRC-005',date:'2025-05-10',buyer:'ERC',provider:'Asec Automation ASA',service:'Automation and control systems for refinery',value:2400000,status:'Pending response',responseDeadline:'2025-05-20',externalUsed:false},
+];
+
+function today(){ return new Date().toISOString().split('T')[0] }
+function fmt(n){ return 'EGP '+n.toLocaleString() }
+function fmtDate(d){ if(!d) return '—'; const dt=new Date(d); return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) }
+function daysDiff(d){ const ms=new Date()-new Date(d); return Math.floor(ms/86400000) }
+
+function calcFine(amount, dueDate){
+  if(!dueDate) return 0;
+  const days = daysDiff(dueDate);
+  if(days<=0) return 0;
+  const daily=amount*0.0005;
+  const fine=Math.min(daily*days, amount*0.10);
+  return Math.round(fine);
+}
+
+function getStatusBadge(s){
+  const map={
+    'Pending approval':'<span class="badge badge-amber">Pending approval</span>',
+    'approved':'<span class="badge badge-blue">Approved</span>',
+    'In negotiation':'<span class="badge badge-blue">In negotiation</span>',
+    'Secured':'<span class="badge badge-green">Secured</span>',
+    'Completed':'<span class="badge badge-green">Completed</span>',
+    'Rejected':'<span class="badge badge-red">Rejected</span>',
+    'In progress':'<span class="badge badge-teal">In progress</span>',
+    'Pending response':'<span class="badge badge-amber">Pending response</span>',
+    'Overdue':'<span class="badge badge-red">Overdue</span>',
+    'Paid':'<span class="badge badge-green">Paid</span>',
+  };
+  return map[s]||`<span class="badge badge-gray">${s}</span>`;
+}
+
+// ── ROLE CONTROL ──────────────────────────────────────────────────────────
+function changeRole(r){
+  currentRole=r;
+  const labels={keeper:'BD Director',referring:'Referring Co.',receiving:'Receiving Co.'};
+  document.getElementById('roleLabel').innerHTML=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${labels[r]}`;
+  showPage('dashboard');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,fines:renderFines,sourcing:renderSourcing,companies:renderCompanies,reports:renderReports};
+const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',fines:'Late payment fines',sourcing:'Intra-group sourcing',companies:'Group companies',reports:'Reports & export'};
+
+function showPage(p){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navBtn=document.querySelector(`[onclick="showPage('${p}')"]`);
+  if(navBtn) navBtn.classList.add('active');
+  document.getElementById('pageTitle').textContent=titles[p]||p;
+  updateNotifDots();
+  if(pages[p]) pages[p]();
+}
+
+function updateNotifDots(){
+  const pending=REFERRALS.filter(r=>r.referralStatus==='pending').length;
+  document.getElementById('dot-approvals').style.display=pending>0?'inline-block':'none';
+  const overdue=REFERRALS.filter(r=>r.status==='Secured'&&r.collected>0&&r.incentivePaid<r.collected*0.005&&r.paymentDue&&daysDiff(r.paymentDue)>0).length;
+  document.getElementById('dot-payments').style.display=overdue>0?'inline-block':'none';
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+function openModal(html){ document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').classList.add('open') }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open') }
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function renderDashboard(){
+  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-sm" onclick="showPage('reports')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export</button>`;
+
+  const totalRefs=REFERRALS.length;
+  const secured=REFERRALS.filter(r=>r.status==='Secured');
+  const totalSecuredVal=secured.reduce((a,r)=>a+r.secured,0);
+  const totalCollected=secured.reduce((a,r)=>a+r.collected,0);
+  const totalIncentives=Math.round(totalCollected*0.005);
+  const paid=secured.reduce((a,r)=>a+r.incentivePaid,0);
+  const pending=REFERRALS.filter(r=>r.referralStatus==='pending').length;
+  const overduePay=REFERRALS.filter(r=>r.status==='Secured'&&r.collected>0&&r.incentivePaid<r.collected*0.005&&r.paymentDue&&daysDiff(r.paymentDue)>0);
+  const totalFines=overduePay.reduce((a,r)=>a+calcFine(r.collected*0.005-r.incentivePaid,r.paymentDue),0);
+
+  let alerts='';
+  if(pending>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} referral(s)</strong> awaiting your approval — <a href="#" onclick="showPage('approvals');return false">review now</a></div></div>`;
+  if(overduePay.length>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${overduePay.length} overdue incentive payment(s)</strong> — total fines accruing: ${fmt(totalFines)} — <a href="#" onclick="showPage('payments');return false">view payments</a></div></div>`;
+
+  const recentRows=REFERRALS.slice(-5).reverse().map(r=>`
+    <tr>
+      <td><span style="font-size:12px;color:var(--text3)">${r.id}</span><br><span style="font-weight:500">${r.client}</span></td>
+      <td>${r.referring}</td>
+      <td>${r.receiving}</td>
+      <td>${fmt(r.value)}</td>
+      <td>${getStatusBadge(r.status)}</td>
+      <td><button class="btn btn-sm" onclick="viewReferral('${r.id}')">View</button></td>
+    </tr>`).join('');
+
+  const srcRows=SOURCING.filter(s=>s.status!=='Completed').map(s=>`
+    <tr>
+      <td>${s.id}</td>
+      <td>${s.buyer}</td>
+      <td>${s.provider}</td>
+      <td>${s.service}</td>
+      <td>${getStatusBadge(s.status)}</td>
+    </tr>`).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+    ${alerts}
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total referrals</div>
+        <div class="stat-value">${totalRefs}</div>
+        <div class="stat-sub">${secured.length} secured</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Secured business</div>
+        <div class="stat-value" style="font-size:18px">${fmt(totalSecuredVal)}</div>
+        <div class="stat-sub">${fmt(totalCollected)} collected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Incentives due</div>
+        <div class="stat-value" style="font-size:18px">${fmt(totalIncentives)}</div>
+        <div class="stat-sub">${fmt(paid)} paid · ${fmt(totalIncentives-paid)} outstanding</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active fines</div>
+        <div class="stat-value" style="font-size:18px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div>
+        <div class="stat-sub">${overduePay.length} payment(s) overdue</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+      <div class="card card-sm">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:600">Referral conversion</h3>
+        </div>
+        ${renderFunnelBars()}
+      </div>
+      <div class="card card-sm">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:14px">Top referring companies</h3>
+        ${renderTopReferrers()}
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="font-size:14px;font-weight:600">Recent referrals</h3>
+        <button class="btn btn-sm" onclick="showPage('referrals')">View all</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Opportunity</th><th>Referring</th><th>Receiving</th><th>Value</th><th>Status</th><th></th></tr></thead>
+          <tbody>${recentRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    ${SOURCING.filter(s=>s.status!=='Completed').length>0?`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h3 style="font-size:14px;font-weight:600">Active sourcing requests</h3>
+        <button class="btn btn-sm" onclick="showPage('sourcing')">View all</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Buyer</th><th>Provider</th><th>Service</th><th>Status</th></tr></thead>
+          <tbody>${srcRows}</tbody>
+        </table>
+      </div>
+    </div>`:''}
+  `;
+}
+
+function renderFunnelBars(){
+  const total=REFERRALS.length;
+  const approved=REFERRALS.filter(r=>r.referralStatus==='approved').length;
+  const neg=REFERRALS.filter(r=>r.status==='In negotiation'||r.status==='Secured').length;
+  const sec=REFERRALS.filter(r=>r.status==='Secured').length;
+  const steps=[['Submitted',total,100],['Approved',approved,Math.round(approved/total*100)],['In negotiation',neg,Math.round(neg/total*100)],['Secured',sec,Math.round(sec/total*100)]];
+  return steps.map(([label,count,pct])=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span style="color:var(--text2)">${label}</span>
+        <span style="font-weight:500">${count} <span style="color:var(--text3);font-weight:400">(${pct}%)</span></span>
+      </div>
+      <div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`).join('');
+}
+
+function renderTopReferrers(){
+  const counts={};
+  REFERRALS.forEach(r=>{ counts[r.referring]=(counts[r.referring]||0)+1 });
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const max=sorted[0]?.[1]||1;
+  return sorted.map(([co,n])=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--text2);min-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${co}</span>
+      <div class="progress" style="flex:1"><div class="progress-fill" style="width:${Math.round(n/max*100)}%;background:var(--teal)"></div></div>
+      <span style="font-size:12px;font-weight:500;min-width:16px;text-align:right">${n}</span>
+    </div>`).join('');
+}
+
+// ── REFERRALS ─────────────────────────────────────────────────────────────
+function renderReferrals(){
+  const canAdd=currentRole!=='receiving';
+  document.getElementById('topbarActions').innerHTML=canAdd?`<button class="btn btn-primary btn-sm" onclick="openNewReferralModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New referral</button>`:'';
+
+  const rows=REFERRALS.map(r=>{
+    const incentive=Math.round(r.collected*0.005);
+    const outstanding=incentive-r.incentivePaid;
+    return `<tr>
+      <td><span style="font-size:11px;color:var(--text3)">${r.id}</span><br><strong>${r.client}</strong><br><span style="font-size:12px;color:var(--text3)">${r.desc.substring(0,50)}…</span></td>
+      <td>${r.referring}</td>
+      <td>${r.receiving}</td>
+      <td style="font-size:12px">${fmt(r.value)}</td>
+      <td>${getStatusBadge(r.referralStatus==='pending'?'Pending approval':r.status)}</td>
+      <td style="font-size:12px">${r.collected>0?fmt(incentive):'—'}</td>
+      <td><button class="btn btn-sm" onclick="viewReferral('${r.id}')">View</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="search-bar">
+      <input type="text" placeholder="Search referrals…" oninput="filterReferralTable(this.value)">
+      <select onchange="filterReferralStatus(this.value)">
+        <option value="">All statuses</option>
+        <option>Pending approval</option><option>In negotiation</option><option>Secured</option><option>Rejected</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table id="refTable">
+        <thead><tr><th>Opportunity</th><th>Referring</th><th>Receiving</th><th>Est. value</th><th>Status</th><th>Incentive due</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function filterReferralTable(q){
+  document.querySelectorAll('#refTable tbody tr').forEach(tr=>{
+    tr.style.display=tr.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+}
+function filterReferralStatus(s){
+  document.querySelectorAll('#refTable tbody tr').forEach(tr=>{
+    tr.style.display=!s||tr.textContent.includes(s)?'':'none';
+  });
+}
+
+function viewReferral(id){
+  const r=REFERRALS.find(x=>x.id===id);
+  if(!r) return;
+  const incentive=Math.round(r.collected*0.005);
+  const outstanding=incentive-r.incentivePaid;
+  const fine=r.paymentDue&&outstanding>0?calcFine(outstanding,r.paymentDue):0;
+  const isKeeper=currentRole==='keeper';
+  const isPending=r.referralStatus==='pending';
+
+  openModal(`
+    <h3>Referral — ${r.id}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
+      <div class="stat-card"><div class="stat-label">Client</div><div style="font-weight:600;margin-top:4px">${r.client}</div></div>
+      <div class="stat-card"><div class="stat-label">Opportunity value</div><div style="font-weight:600;margin-top:4px">${fmt(r.value)}</div></div>
+      <div class="stat-card"><div class="stat-label">Referring company</div><div style="margin-top:4px">${r.referring}</div></div>
+      <div class="stat-card"><div class="stat-label">Receiving company</div><div style="margin-top:4px">${r.receiving}</div></div>
+    </div>
+    <div class="form-group"><label>Description</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">${r.desc}</p></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0">
+      <div class="stat-card"><div class="stat-label">Secured</div><div style="font-weight:600">${r.secured>0?fmt(r.secured):'—'}</div></div>
+      <div class="stat-card"><div class="stat-label">Collected</div><div style="font-weight:600">${r.collected>0?fmt(r.collected):'—'}</div></div>
+      <div class="stat-card"><div class="stat-label">Incentive (0.5%)</div><div style="font-weight:600;color:${incentive>0?'var(--blue)':'var(--text)'}">${incentive>0?fmt(incentive):'—'}</div></div>
+    </div>
+    ${outstanding>0?`
+      <div class="alert ${fine>0?'alert-red':'alert-amber'}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>Outstanding incentive: <strong>${fmt(outstanding)}</strong> — due ${fmtDate(r.paymentDue)}
+        ${fine>0?` — <strong>Fine accrued: ${fmt(fine)}</strong>`:''}
+        </div>
+      </div>`:''}
+    ${isPending&&isKeeper?`
+      <div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-top:4px">
+        <p style="font-size:13px;color:var(--amber);margin-bottom:10px">This referral is awaiting your approval.</p>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success" onclick="approveReferral('${r.id}')">✓ Approve referral</button>
+          <button class="btn btn-danger" onclick="rejectReferral('${r.id}')">✕ Reject</button>
+        </div>
+      </div>`:''}
+    ${(()=>{
+      const subject=`Qalaa Framework — Update on ${r.id}: ${r.client}`;
+      const msg=`Dear Contact,\n\nThis is an update regarding referral ${r.id} (${r.client}).\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nStatus: ${r.status}\nEstimated value: ${fmt(r.value)}${r.collected>0?`\nIncentive due: ${fmt(Math.round(r.collected*0.005))}\nOutstanding: ${fmt(Math.round(r.collected*0.005)-r.incentivePaid)}`:''}\n\nPlease log in to the Qalaa Framework tool for full details.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+      return notifyPanel([r.referring,r.receiving],subject,msg);
+    })()}
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Close</button>
+      ${isKeeper&&r.status==='Secured'&&outstanding>0?`<button class="btn btn-primary" onclick="markPaid('${r.id}')">Mark incentive paid</button>`:''}
+    </div>
+  `);
+}
+
+function approveReferral(id){
+  const r=REFERRALS.find(x=>x.id===id);
+  if(!r) return;
+  r.referralStatus='approved'; r.status=r.status==='Pending approval'?'In negotiation':r.status;
+  const subject=`Qalaa Framework — Referral ${r.id} Approved`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has been APPROVED by the Group BD Director.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\nThe receiving company may now proceed with the opportunity.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Referral ${r.id} — Approved</h3>
+    <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Referral approved. Notify the companies below.</div>
+    ${notifyPanel([r.referring,r.receiving],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderApprovals()">Done</button></div>`);
+  showToast('Referral approved');
+}
+function rejectReferral(id){
+  const r=REFERRALS.find(x=>x.id===id);
+  if(!r) return;
+  r.referralStatus='rejected'; r.status='Rejected';
+  const subject=`Qalaa Framework — Referral ${r.id} Not Approved`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has not been approved at this time.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\n\nPlease contact the Group BD Director for further information.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Referral ${r.id} — Rejected</h3>
+    <div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Referral rejected. Notify the companies below.</div>
+    ${notifyPanel([r.referring,r.receiving],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderApprovals()">Done</button></div>`);
+  showToast('Referral rejected');
+}
+function markPaid(id){
+  const r=REFERRALS.find(x=>x.id===id);
+  if(!r) return;
+  r.incentivePaid=Math.round(r.collected*0.005);
+  const subject=`Qalaa Framework — Incentive Payment Processed for ${r.id}`;
+  const msg=`Dear Contact,\n\nThe referral incentive for ${r.id} (${r.client}) has been marked as PAID.\n\nReferring company: ${r.referring}\nAmount paid: ${fmt(r.incentivePaid)}\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Incentive Paid — ${r.id}</h3>
+    <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Incentive marked as paid. Notify the referring company below.</div>
+    ${notifyPanel([r.referring],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderPayments()">Done</button></div>`);
+  showToast('Incentive marked as paid');
+}
+
+function openNewReferralModal(){
+  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
+  openModal(`
+    <h3>Register new referral</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Referring company</label><select id="nrReferring">${coOpts}</select></div>
+      <div class="form-group"><label>Receiving company</label><select id="nrReceiving">${coOpts}</select></div>
+    </div>
+    <div class="form-group"><label>Client name</label><input type="text" id="nrClient" placeholder="e.g. Cairo International Airport"></div>
+    <div class="form-group"><label>Opportunity description</label><textarea id="nrDesc" placeholder="Describe the business opportunity…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Estimated value (EGP)</label><input type="number" id="nrValue" placeholder="0"></div>
+      <div class="form-group"><label>Referral date</label><input type="date" id="nrDate" value="${today()}"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewReferral()">Register referral</button>
+    </div>
+  `);
+}
+
+function submitNewReferral(){
+  const ref=document.getElementById('nrReferring').value;
+  const rec=document.getElementById('nrReceiving').value;
+  const client=document.getElementById('nrClient').value;
+  const desc=document.getElementById('nrDesc').value;
+  const value=parseFloat(document.getElementById('nrValue').value)||0;
+  const date=document.getElementById('nrDate').value;
+  if(!client||!desc||!value){ showToast('Please fill all fields','error'); return; }
+  if(ref===rec){ showToast('Referring and receiving must differ','error'); return; }
+  const id=`REF-${String(REFERRALS.length+1).padStart(3,'0')}`;
+  REFERRALS.push({id,date,referring:ref,receiving:rec,client,desc,value,status:'Pending approval',secured:0,collected:0,incentivePaid:0,paymentDue:null,referralStatus:'pending'});
+  const subject=`Qalaa Framework — New Referral Registered: ${id}`;
+  const msg=`Dear Contact,\n\nA new referral has been registered in the Qalaa Framework.\n\nReferral ID: ${id}\nClient: ${client}\nOpportunity: ${desc}\nEstimated value: EGP ${Number(value).toLocaleString()}\nReferring company: ${ref}\nReceiving company: ${rec}\n\nThis referral is pending approval by the Group BD Director.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Referral Registered — ${id}</h3>
+    <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Referral registered successfully. Notify the companies below.</div>
+    ${notifyPanel([ref,rec],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderReferrals()">Done</button></div>`);
+  showToast('Referral registered — pending approval');
+}
+
+// ── APPROVALS ─────────────────────────────────────────────────────────────
+function renderApprovals(){
+  document.getElementById('topbarActions').innerHTML='';
+  const pending=REFERRALS.filter(r=>r.referralStatus==='pending');
+  if(currentRole!=='keeper'){
+    document.getElementById('mainContent').innerHTML=`<div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Only the Process Keeper (BD Director) can approve referrals.</div>`;
+    return;
+  }
+  if(pending.length===0){
+    document.getElementById('mainContent').innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p>No referrals pending approval</p></div>`;
+    return;
+  }
+  const rows=pending.map(r=>`
+    <tr>
+      <td><strong>${r.id}</strong><br><span style="font-size:12px;color:var(--text3)">${fmtDate(r.date)}</span></td>
+      <td>${r.client}</td>
+      <td>${r.referring}</td>
+      <td>${r.receiving}</td>
+      <td>${fmt(r.value)}</td>
+      <td>
+        <button class="btn btn-success btn-sm" style="margin-right:4px" onclick="approveReferral('${r.id}');renderApprovals()">Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectReferral('${r.id}');renderApprovals()">Reject</button>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="alert alert-amber" style="margin-bottom:18px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      ${pending.length} referral(s) are awaiting your approval. Review and approve or reject below.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ref ID</th><th>Client</th><th>Referring</th><th>Receiving</th><th>Value</th><th>Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── PAYMENTS ──────────────────────────────────────────────────────────────
+function renderPayments(){
+  document.getElementById('topbarActions').innerHTML='';
+  const payable=REFERRALS.filter(r=>r.status==='Secured'&&r.collected>0);
+
+  const rows=payable.map(r=>{
+    const incentive=Math.round(r.collected*0.005);
+    const outstanding=incentive-r.incentivePaid;
+    const fine=outstanding>0&&r.paymentDue?calcFine(outstanding,r.paymentDue):0;
+    const overdue=outstanding>0&&r.paymentDue&&daysDiff(r.paymentDue)>0;
+    const statusLabel=outstanding<=0?'Paid':overdue?'Overdue':'Due';
+    return `<tr>
+      <td><strong>${r.id}</strong><br><span style="font-size:12px;color:var(--text3)">${r.client}</span></td>
+      <td>${r.referring}</td>
+      <td>${r.receiving}</td>
+      <td>${fmt(r.collected)}</td>
+      <td><strong>${fmt(incentive)}</strong></td>
+      <td>${fmt(r.incentivePaid)}</td>
+      <td style="color:${outstanding>0?'var(--red)':'var(--green)'}"><strong>${fmt(outstanding)}</strong></td>
+      <td>${fmtDate(r.paymentDue)}</td>
+      <td>${fine>0?`<span style="color:var(--red);font-weight:600">${fmt(fine)}</span>`:'—'}</td>
+      <td>${getStatusBadge(statusLabel)}${currentRole==='keeper'&&outstanding>0?`<br><button class="btn btn-sm" style="margin-top:4px" onclick="markPaid('${r.id}')">Mark paid</button>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  const totalIncentive=Math.round(payable.reduce((a,r)=>a+r.collected*0.005,0));
+  const totalPaid=payable.reduce((a,r)=>a+r.incentivePaid,0);
+  const totalOutstanding=totalIncentive-totalPaid;
+  const totalFines=payable.reduce((a,r)=>{
+    const out=Math.round(r.collected*0.005)-r.incentivePaid;
+    return a+(out>0&&r.paymentDue?calcFine(out,r.paymentDue):0);
+  },0);
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card"><div class="stat-label">Total incentives due</div><div class="stat-value" style="font-size:18px">${fmt(totalIncentive)}</div></div>
+      <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value" style="font-size:18px;color:var(--green)">${fmt(totalPaid)}</div></div>
+      <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value" style="font-size:18px;color:var(--amber)">${fmt(totalOutstanding)}</div></div>
+      <div class="stat-card"><div class="stat-label">Active fines</div><div class="stat-value" style="font-size:18px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div></div>
+    </div>
+    ${totalFines>0?`<div class="alert alert-red" style="margin-bottom:18px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Late payment fines are accruing daily at 0.05% of outstanding amounts. Settle outstanding payments to stop fines.</div>`:''}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Referral</th><th>Referring</th><th>Receiving</th><th>Collected</th><th>Incentive (0.5%)</th><th>Paid</th><th>Outstanding</th><th>Due date</th><th>Fine</th><th>Status</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">No secured business yet</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ── FINES ─────────────────────────────────────────────────────────────────
+function renderFines(){
+  document.getElementById('topbarActions').innerHTML='';
+  document.getElementById('mainContent').innerHTML=`
+    <div class="card" style="max-width:500px;margin-bottom:24px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Late payment fine calculator</h3>
+      <div class="form-group"><label>Outstanding amount (EGP)</label><input type="number" id="fcAmt" placeholder="0" oninput="calcFineDisplay()"></div>
+      <div class="form-group"><label>Payment due date</label><input type="date" id="fcDue" value="${today()}" oninput="calcFineDisplay()"></div>
+      <div id="fineResult" style="margin-top:16px"></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:14px">Fine policy summary</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="stat-card"><div class="stat-label">Daily rate</div><div class="stat-value" style="font-size:20px">0.05%</div><div class="stat-sub">of outstanding amount</div></div>
+        <div class="stat-card"><div class="stat-label">Maximum cap</div><div class="stat-value" style="font-size:20px">10%</div><div class="stat-sub">of original amount owed</div></div>
+        <div class="stat-card"><div class="stat-label">Starts accruing</div><div class="stat-value" style="font-size:16px">Day after</div><div class="stat-sub">the due date</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function calcFineDisplay(){
+  const amt=parseFloat(document.getElementById('fcAmt').value)||0;
+  const due=document.getElementById('fcDue').value;
+  if(!amt||!due){ document.getElementById('fineResult').innerHTML=''; return; }
+  const days=daysDiff(due);
+  if(days<=0){ document.getElementById('fineResult').innerHTML=`<div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Payment is not yet overdue.</div>`; return; }
+  const fine=calcFine(amt,due);
+  const capped=fine>=amt*0.10;
+  document.getElementById('fineResult').innerHTML=`
+    <div class="fine-display">
+      <div class="fine-amount">${fmt(fine)}</div>
+      <div class="fine-label">Fine accrued over ${days} day${days>1?'s':''} ${capped?'(maximum cap reached)':''}</div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text3)">Daily fine: ${fmt(Math.round(amt*0.0005))} · Total original: ${fmt(amt)} · Cap: ${fmt(Math.round(amt*0.10))}</div>
+  `;
+}
+
+// ── SOURCING ──────────────────────────────────────────────────────────────
+function renderSourcing(){
+  const canAdd=currentRole!=='receiving'||true;
+  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewSourcingModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New sourcing request</button>`;
+
+  const rows=SOURCING.map(s=>{
+    const overdue=s.status==='Pending response'&&daysDiff(s.responseDeadline)>0;
+    const statusLabel=overdue?'Overdue response':s.status;
+    return `<tr>
+      <td><strong>${s.id}</strong><br><span style="font-size:11px;color:var(--text3)">${fmtDate(s.date)}</span></td>
+      <td>${s.buyer}</td>
+      <td>${s.provider}</td>
+      <td>${s.service}</td>
+      <td>${fmt(s.value)}</td>
+      <td>${fmtDate(s.responseDeadline)}</td>
+      <td>${getStatusBadge(statusLabel)}</td>
+      <td>${currentRole==='keeper'&&s.status!=='Completed'?`<button class="btn btn-sm" onclick="completeSourcing('${s.id}')">Mark complete</button>`:''}</td>
+    </tr>`;
+  }).join('');
+
+  const completed=SOURCING.filter(s=>s.status==='Completed').length;
+  const internalRatio=Math.round(completed/SOURCING.length*100);
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-value">${SOURCING.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Completed intra-group</div><div class="stat-value">${completed}</div></div>
+      <div class="stat-card"><div class="stat-label">Intra-group ratio</div><div class="stat-value">${internalRatio}%</div><div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:${internalRatio}%"></div></div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Buyer</th><th>Provider</th><th>Service</th><th>Value</th><th>Response deadline</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function completeSourcing(id){
+  const s=SOURCING.find(x=>x.id===id);
+  if(s) s.status='Completed';
+  renderSourcing(); showToast('Sourcing request marked complete');
+}
+
+function openNewSourcingModal(){
+  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
+  openModal(`
+    <h3>New intra-group sourcing request</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Buyer company</label><select id="nsBuyer">${coOpts}</select></div>
+      <div class="form-group"><label>Provider company (internal)</label><select id="nsProvider">${coOpts}</select></div>
+    </div>
+    <div class="form-group"><label>Service / product required</label><textarea id="nsService" placeholder="Describe what is being sourced…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Estimated value (EGP)</label><input type="number" id="nsValue" placeholder="0"></div>
+      <div class="form-group"><label>Response deadline</label><input type="date" id="nsDue" value="${new Date(Date.now()+7*864e5).toISOString().split('T')[0]}"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSourcing()">Submit request</button>
+    </div>
+  `);
+}
+
+function submitSourcing(){
+  const buyer=document.getElementById('nsBuyer').value;
+  const provider=document.getElementById('nsProvider').value;
+  const service=document.getElementById('nsService').value;
+  const value=parseFloat(document.getElementById('nsValue').value)||0;
+  const due=document.getElementById('nsDue').value;
+  if(!service||!value){ showToast('Please fill all fields','error'); return; }
+  if(buyer===provider){ showToast('Buyer and provider must differ','error'); return; }
+  const id=`SRC-${String(SOURCING.length+1).padStart(3,'0')}`;
+  SOURCING.push({id,date:today(),buyer,provider,service,value,status:'Pending response',responseDeadline:due,externalUsed:false});
+  const subject=`Qalaa Framework — New Sourcing Request: ${id}`;
+  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaa-framework.netlify.app\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Sourcing Request Submitted — ${id}</h3>
+    <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Sourcing request submitted. Notify the companies below.</div>
+    ${notifyPanel([buyer,provider],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderSourcing()">Done</button></div>`);
+  showToast('Sourcing request submitted');
+}
+
+// ── COMPANIES ─────────────────────────────────────────────────────────────
+function renderCompanies(){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML='';
+  const rows=COMPANIES.map(c=>{
+    const ct=getContact(c);
+    const sent=REFERRALS.filter(r=>r.referring===c).length;
+    const received=REFERRALS.filter(r=>r.receiving===c).length;
+    const hasContact=ct.email||ct.phone;
+    return `<tr>
+      <td><strong>${c}</strong></td>
+      <td>${ct.name||'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
+      <td>${ct.email?`<a href="mailto:${ct.email}">${ct.email}</a>`:'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
+      <td>${ct.phone||'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
+      <td style="text-align:center">${sent}</td>
+      <td style="text-align:center">${received}</td>
+      <td style="text-align:center">${SOURCING.filter(s=>s.buyer===c||s.provider===c).length}</td>
+      <td>
+        <div style="display:flex;gap:5px;align-items:center">
+          ${isKeeper?`<button class="btn btn-sm" onclick="editContact('${c}')">Edit contact</button>`:''}
+          ${ct.email?`<a href="mailto:${ct.email}" class="btn btn-sm" style="text-decoration:none" title="Email ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg></a>`:''}
+          ${ct.phone?`<a href="${waLink(ct.phone,'Hello from Qalaa Holdings Framework tool.')}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--green-bg);color:var(--green);border-color:var(--green-light)" title="WhatsApp ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const missing=COMPANIES.filter(c=>{ const ct=getContact(c); return !ct.email&&!ct.phone; }).length;
+
+  document.getElementById('mainContent').innerHTML=`
+    ${missing>0&&isKeeper?`<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${missing} compan${missing===1?'y':'ies'}</strong> have no contact set. Add contacts to enable one-click email & WhatsApp notifications.</div></div>`:''}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Company</th><th>Contact person</th><th>Email</th><th>Phone</th><th style="text-align:center">Refs sent</th><th style="text-align:center">Refs received</th><th style="text-align:center">Sourcing</th><th>Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function editContact(co){
+  const ct=getContact(co);
+  openModal(`
+    <h3>Edit contact — ${co}</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">This person will receive email and WhatsApp notifications for all activity involving ${co}.</p>
+    <div class="form-group"><label>Contact person name</label><input type="text" id="ecName" value="${ct.name}" placeholder="e.g. Ahmed Hassan"></div>
+    <div class="form-group"><label>Email address</label><input type="email" id="ecEmail" value="${ct.email}" placeholder="e.g. ahmed.hassan@company.com"></div>
+    <div class="form-group"><label>WhatsApp phone number <span style="font-weight:400;color:var(--text3)">(include country code, e.g. +201001234567)</span></label><input type="tel" id="ecPhone" value="${ct.phone}" placeholder="+201001234567"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact('${co}')">Save contact</button>
+    </div>
+  `);
+}
+
+function saveContact(co){
+  CONTACTS[co]={
+    name:document.getElementById('ecName').value.trim(),
+    email:document.getElementById('ecEmail').value.trim(),
+    phone:document.getElementById('ecPhone').value.trim()
+  };
+  closeModal(); renderCompanies(); showToast('Contact saved for '+co);
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────────────
+function renderReports(){
+  document.getElementById('topbarActions').innerHTML=`
+    <button class="btn btn-sm" onclick="exportXLSX()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export to Excel</button>
+  `;
+
+  const totalSec=REFERRALS.filter(r=>r.status==='Secured').reduce((a,r)=>a+r.secured,0);
+  const totalColl=REFERRALS.filter(r=>r.status==='Secured').reduce((a,r)=>a+r.collected,0);
+  const totalInc=Math.round(totalColl*0.005);
+  const totalPaid=REFERRALS.reduce((a,r)=>a+r.incentivePaid,0);
+  const srcCompleted=SOURCING.filter(s=>s.status==='Completed').length;
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+      <div class="stat-card"><div class="stat-label">Total referrals</div><div class="stat-value">${REFERRALS.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Conversion rate</div><div class="stat-value">${Math.round(REFERRALS.filter(r=>r.status==='Secured').length/REFERRALS.length*100)}%</div></div>
+      <div class="stat-card"><div class="stat-label">Business generated</div><div class="stat-value" style="font-size:17px">${fmt(totalSec)}</div></div>
+      <div class="stat-card"><div class="stat-label">Cash collected</div><div class="stat-value" style="font-size:17px">${fmt(totalColl)}</div></div>
+      <div class="stat-card"><div class="stat-label">Incentives paid</div><div class="stat-value" style="font-size:17px">${fmt(totalPaid)}</div></div>
+      <div class="stat-card"><div class="stat-label">Sourcing ratio</div><div class="stat-value">${Math.round(srcCompleted/SOURCING.length*100)}%</div><div class="stat-sub">intra-group</div></div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:6px">Export data</h3>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Click the Export to Excel button above to download all referrals, payments, and sourcing data as a multi-sheet Excel workbook.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Referrals sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${REFERRALS.length} records</div></div>
+        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Payments sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${REFERRALS.filter(r=>r.collected>0).length} records</div></div>
+        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Sourcing sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${SOURCING.length} records</div></div>
+        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Companies sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${COMPANIES.length} companies</div></div>
+      </div>
+    </div>
+  `;
+}
+
+function exportXLSX(){
+  const wb=XLSX.utils.book_new();
+
+  const refData=REFERRALS.map(r=>({
+    'Referral ID':r.id,'Date':r.date,'Referring Company':r.referring,'Receiving Company':r.receiving,
+    'Client':r.client,'Description':r.desc,'Estimated Value':r.value,'Status':r.status,
+    'Secured Amount':r.secured,'Collected Amount':r.collected,
+    'Incentive Due (0.5%)':Math.round(r.collected*0.005),'Incentive Paid':r.incentivePaid,
+    'Outstanding':Math.round(r.collected*0.005)-r.incentivePaid,'Payment Due Date':r.paymentDue||''
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(refData),'Referrals');
+
+  const payData=REFERRALS.filter(r=>r.collected>0).map(r=>{
+    const inc=Math.round(r.collected*0.005);
+    const out=inc-r.incentivePaid;
+    const fine=out>0&&r.paymentDue?calcFine(out,r.paymentDue):0;
+    return {'Referral ID':r.id,'Client':r.client,'Referring':r.referring,'Receiving':r.receiving,
+      'Collected':r.collected,'Incentive Due':inc,'Incentive Paid':r.incentivePaid,'Outstanding':out,
+      'Payment Due':r.paymentDue||'','Fine Accrued':fine,'Days Overdue':r.paymentDue?Math.max(0,daysDiff(r.paymentDue)):0};
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(payData),'Incentive Payments');
+
+  const srcData=SOURCING.map(s=>({'ID':s.id,'Date':s.date,'Buyer':s.buyer,'Provider':s.provider,
+    'Service':s.service,'Value':s.value,'Response Deadline':s.responseDeadline,'Status':s.status}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(srcData),'Intra-Group Sourcing');
+
+  const coData=COMPANIES.map(c=>({
+    'Company':c,'Referrals Sent':REFERRALS.filter(r=>r.referring===c).length,
+    'Referrals Received':REFERRALS.filter(r=>r.receiving===c).length,
+    'Sourcing as Buyer':SOURCING.filter(s=>s.buyer===c).length,
+    'Sourcing as Provider':SOURCING.filter(s=>s.provider===c).length
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(coData),'Companies');
+
+  XLSX.writeFile(wb,`Qalaa_Framework_Report_${today()}.xlsx`);
+  showToast('Excel report downloaded');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────
+function showToast(msg,type='success'){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:24px;right:24px;background:${type==='error'?'var(--red-bg)':'var(--green-bg)'};color:${type==='error'?'var(--red)':'var(--green)'};border:1px solid ${type==='error'?'var(--red-light)':'var(--green-light)'};padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.08)`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+updateNotifDots();
+renderDashboard();
+</script>
+</body>
+</html>
