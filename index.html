@@ -195,6 +195,11 @@ tr:hover td{background:#fafaf8}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
       Intra-group sourcing
     </button>
+    <button class="nav-item" onclick="showPage('dues')" id="nav-dues">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Group dues register
+      <span class="notif-dot" id="dot-dues" style="display:none"></span>
+    </button>
     <div class="nav-section">Admin</div>
     <button class="nav-item" onclick="showPage('companies')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -260,6 +265,14 @@ const CONTACTS = {
   "Qalaa":                   {name:'',phone:'',email:''},
   "GP Business Development": {name:'',phone:'',email:''},
 };
+
+// ── DUES REGISTER ────────────────────────────────────────────────────────
+const DUES = [
+  {id:'DUE-001',creditor:'Asec Engineering',debtor:'ARESCO',desc:'Engineering consultancy services Q3 2023',amount:850000,dueDate:'2023-09-30',registeredBy:'keeper',registeredDate:'2024-01-15',status:'Disputed',debtorResponse:'We acknowledge partial amount only — EGP 600,000. Awaiting credit note.',settlementDate:null,settled:0},
+  {id:'DUE-002',creditor:'Nile Logistics',debtor:'ASCOM',desc:'Freight and transport services H1 2023',amount:1200000,dueDate:'2023-07-01',registeredBy:'creditor',registeredDate:'2024-02-10',status:'Acknowledged',debtorResponse:'We confirm this amount is owed. Requesting payment plan.',settlementDate:null,settled:0},
+  {id:'DUE-003',creditor:'GlassRock',debtor:'ERC',desc:'Glazing materials supply March 2024',amount:430000,dueDate:'2024-04-30',registeredBy:'creditor',registeredDate:'2024-05-20',status:'Pending response',debtorResponse:'',settlementDate:null,settled:0},
+  {id:'DUE-004',creditor:'Taqa Power',debtor:'Dina Farms',desc:'Electricity infrastructure works 2022',amount:2100000,dueDate:'2022-12-31',registeredBy:'keeper',registeredDate:'2024-03-01',status:'Partially settled',debtorResponse:'Acknowledged. We have paid EGP 500,000 in Jan 2024.',settlementDate:null,settled:500000},
+];
 
 function getContact(co){ return CONTACTS[co]||{name:'',phone:'',email:''} }
 
@@ -373,8 +386,8 @@ function changeRole(r){
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
-const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,fines:renderFines,sourcing:renderSourcing,companies:renderCompanies,reports:renderReports};
-const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',fines:'Late payment fines',sourcing:'Intra-group sourcing',companies:'Group companies',reports:'Reports & export'};
+const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,fines:renderFines,sourcing:renderSourcing,dues:renderDues,companies:renderCompanies,reports:renderReports};
+const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',fines:'Late payment fines',sourcing:'Intra-group sourcing',dues:'Group dues register',companies:'Group companies',reports:'Reports & export'};
 
 function showPage(p){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -390,6 +403,8 @@ function updateNotifDots(){
   document.getElementById('dot-approvals').style.display=pending>0?'inline-block':'none';
   const overdue=REFERRALS.filter(r=>r.status==='Secured'&&r.collected>0&&r.incentivePaid<r.collected*0.005&&r.paymentDue&&daysDiff(r.paymentDue)>0).length;
   document.getElementById('dot-payments').style.display=overdue>0?'inline-block':'none';
+  const pendingDues=DUES.filter(d=>d.status==='Pending response').length;
+  if(document.getElementById('dot-dues')) document.getElementById('dot-dues').style.display=pendingDues>0?'inline-block':'none';
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
@@ -411,7 +426,12 @@ function renderDashboard(){
   const totalFines=overduePay.reduce((a,r)=>a+calcFine(r.collected*0.005-r.incentivePaid,r.paymentDue),0);
 
   let alerts='';
+  const pendingDues=DUES.filter(d=>d.status==='Pending response').length;
+  const disputedDues=DUES.filter(d=>d.status==='Disputed').length;
+  const totalDuesOutstanding=DUES.filter(d=>d.status!=='Fully settled').reduce((a,d)=>a+(d.amount-d.settled),0);
   if(pending>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} referral(s)</strong> awaiting your approval — <a href="#" onclick="showPage('approvals');return false">review now</a></div></div>`;
+  if(pendingDues>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pendingDues} registered due(s)</strong> awaiting debtor response — <a href="#" onclick="showPage('dues');return false">view dues register</a></div></div>`;
+  if(disputedDues>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputedDues} due(s) disputed</strong> — require resolution — <a href="#" onclick="showPage('dues');return false">view dues register</a></div></div>`;
   if(overduePay.length>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${overduePay.length} overdue incentive payment(s)</strong> — total fines accruing: ${fmt(totalFines)} — <a href="#" onclick="showPage('payments');return false">view payments</a></div></div>`;
 
   const recentRows=REFERRALS.slice(-5).reverse().map(r=>`
@@ -455,6 +475,11 @@ function renderDashboard(){
         <div class="stat-label">Active fines</div>
         <div class="stat-value" style="font-size:18px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div>
         <div class="stat-sub">${overduePay.length} payment(s) overdue</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="showPage('dues')">
+        <div class="stat-label">Group dues outstanding</div>
+        <div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalDuesOutstanding)}</div>
+        <div class="stat-sub">${DUES.filter(d=>d.status!=='Fully settled').length} active due(s)</div>
       </div>
     </div>
 
@@ -919,6 +944,202 @@ function submitSourcing(){
   showToast('Sourcing request submitted');
 }
 
+// ── DUES REGISTER ────────────────────────────────────────────────────────
+function dueStatusBadge(s){
+  const map={
+    'Pending response':'<span class="badge badge-amber">Pending response</span>',
+    'Acknowledged':'<span class="badge badge-blue">Acknowledged</span>',
+    'Disputed':'<span class="badge badge-red">Disputed</span>',
+    'Partially settled':'<span class="badge badge-teal">Partially settled</span>',
+    'Fully settled':'<span class="badge badge-green">Fully settled</span>',
+  };
+  return map[s]||`<span class="badge badge-gray">${s}</span>`;
+}
+
+function renderDues(){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewDueModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register due</button>`;
+
+  // Filter based on role
+  const visibleDues = isKeeper ? DUES : DUES.filter(d => {
+    // Companies only see dues where they are creditor or debtor
+    // Since we don't have a logged-in company, show all for now with role note
+    return true;
+  });
+
+  const totalDues=DUES.reduce((a,d)=>a+(d.amount-d.settled),0);
+  const totalOverdue=DUES.filter(d=>d.status!=='Fully settled'&&daysDiff(d.dueDate)>0).reduce((a,d)=>a+(d.amount-d.settled),0);
+  const totalFines=DUES.filter(d=>d.status!=='Fully settled').reduce((a,d)=>{
+    const out=d.amount-d.settled;
+    return a+(daysDiff(d.dueDate)>0?calcFine(out,d.dueDate):0);
+  },0);
+  const pending=DUES.filter(d=>d.status==='Pending response').length;
+  const disputed=DUES.filter(d=>d.status==='Disputed').length;
+
+  const rows=visibleDues.map(d=>{
+    const outstanding=d.amount-d.settled;
+    const overdueDays=Math.max(0,daysDiff(d.dueDate));
+    const fine=d.status!=='Fully settled'&&overdueDays>0?calcFine(outstanding,d.dueDate):0;
+    return `<tr>
+      <td><span style="font-size:11px;color:var(--text3)">${d.id}</span><br><strong>${d.creditor}</strong><br><span style="font-size:11px;color:var(--text3)">owed by</span><br><strong style="color:var(--red)">${d.debtor}</strong></td>
+      <td style="font-size:12px">${d.desc}</td>
+      <td style="font-size:12px">${fmt(d.amount)}</td>
+      <td style="font-size:12px;color:var(--green)">${d.settled>0?fmt(d.settled):'—'}</td>
+      <td style="font-size:12px;color:${outstanding>0?'var(--red)':'var(--green)'}"><strong>${fmt(outstanding)}</strong></td>
+      <td style="font-size:12px">${fmtDate(d.dueDate)}<br><span style="color:${overdueDays>0?'var(--red)':'var(--green)'}; font-size:11px">${overdueDays>0?overdueDays+' days overdue':'On time'}</span></td>
+      <td style="font-size:12px;color:${fine>0?'var(--red)':'var(--text3)'}"><strong>${fine>0?fmt(fine):'—'}</strong></td>
+      <td>${dueStatusBadge(d.status)}</td>
+      <td><button class="btn btn-sm" onclick="viewDue('${d.id}')">View</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+    ${pending>0?`<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} due(s)</strong> are awaiting a response from the debtor company.</div></div>`:''}
+    ${disputed>0?`<div class="alert alert-red" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputed} due(s)</strong> are disputed and require resolution.</div></div>`:''}
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Total registered dues</div><div class="stat-value">${DUES.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Total outstanding</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalDues)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total overdue amount</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalOverdue)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total fines accruing</div><div class="stat-value" style="font-size:17px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Creditor / Debtor</th><th>Description</th><th>Amount</th><th>Settled</th><th>Outstanding</th><th>Due date</th><th>Fine</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No dues registered yet</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function viewDue(id){
+  const d=DUES.find(x=>x.id===id);
+  if(!d) return;
+  const isKeeper=currentRole==='keeper';
+  const isDebtor=currentRole==='receiving'; // debtor company view
+  const outstanding=d.amount-d.settled;
+  const overdueDays=Math.max(0,daysDiff(d.dueDate));
+  const fine=d.status!=='Fully settled'&&overdueDays>0?calcFine(outstanding,d.dueDate):0;
+
+  openModal(`
+    <h3>Due — ${d.id}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Creditor (owed money)</div><div style="font-weight:600;color:var(--green);margin-top:4px">${d.creditor}</div></div>
+      <div class="stat-card"><div class="stat-label">Debtor (owes money)</div><div style="font-weight:600;color:var(--red);margin-top:4px">${d.debtor}</div></div>
+    </div>
+    <div class="form-group"><label>Description</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">${d.desc}</p></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Total amount</div><div style="font-weight:600">${fmt(d.amount)}</div></div>
+      <div class="stat-card"><div class="stat-label">Settled so far</div><div style="font-weight:600;color:var(--green)">${fmt(d.settled)}</div></div>
+      <div class="stat-card"><div class="stat-label">Outstanding</div><div style="font-weight:600;color:var(--red)">${fmt(outstanding)}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Due date</div><div style="font-weight:600">${fmtDate(d.dueDate)}</div><div style="font-size:11px;color:${overdueDays>0?'var(--red)':'var(--green)'};margin-top:2px">${overdueDays>0?overdueDays+' days overdue':'Not yet overdue'}</div></div>
+      <div class="stat-card"><div class="stat-label">Late payment fine</div><div style="font-weight:600;color:${fine>0?'var(--red)':'var(--text3)'}">${fine>0?fmt(fine):'None yet'}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${fine>0?'Accruing at 0.05%/day':''}</div></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label>Status</label>
+      <div style="margin-top:4px">${dueStatusBadge(d.status)}</div>
+    </div>
+    ${d.debtorResponse?`
+    <div class="form-group">
+      <label>Debtor response</label>
+      <p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">${d.debtorResponse}</p>
+    </div>`:''}
+    ${d.status==='Pending response'?`
+    <div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-bottom:16px">
+      <p style="font-size:13px;color:var(--amber);font-weight:600;margin-bottom:10px">Debtor response required</p>
+      <textarea id="dueResponse" placeholder="Enter your response — acknowledge, raise a concern, or propose a payment plan…" style="margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-success btn-sm" onclick="respondDue('${d.id}','Acknowledged')">✓ Acknowledge debt</button>
+        <button class="btn btn-danger btn-sm" onclick="respondDue('${d.id}','Disputed')">⚠ Raise concern / Dispute</button>
+      </div>
+    </div>`:''}
+    ${isKeeper&&d.status!=='Fully settled'?`
+    <div style="background:var(--green-bg);border:1px solid var(--green-light);border-radius:var(--radius);padding:14px;margin-bottom:16px">
+      <p style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:10px">Record settlement</p>
+      <div class="form-row">
+        <div class="form-group"><label>Amount settled (EGP)</label><input type="number" id="dueSettleAmt" placeholder="0" max="${outstanding}"></div>
+        <div class="form-group"><label>Settlement date</label><input type="date" id="dueSettleDate" value="${today()}"></div>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="settleDue('${d.id}')">Record settlement</button>
+    </div>`:''}
+    ${(()=>{
+      const subject=`Qalaa Framework — Due Notice: ${d.id}`;
+      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding due registered in the Qalaa Group Framework.\n\nDue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+      return notifyPanel([d.creditor,d.debtor],subject,msg);
+    })()}
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+function respondDue(id, responseType){
+  const d=DUES.find(x=>x.id===id);
+  if(!d) return;
+  const response=document.getElementById('dueResponse').value.trim();
+  if(!response){ showToast('Please enter your response first','error'); return; }
+  d.status=responseType;
+  d.debtorResponse=response;
+  closeModal(); renderDues(); showToast(`Response recorded — marked as ${responseType}`);
+}
+
+function settleDue(id){
+  const d=DUES.find(x=>x.id===id);
+  if(!d) return;
+  const amt=parseFloat(document.getElementById('dueSettleAmt').value)||0;
+  const date=document.getElementById('dueSettleDate').value;
+  if(!amt){ showToast('Please enter settlement amount','error'); return; }
+  d.settled=Math.min(d.settled+amt, d.amount);
+  d.settlementDate=date;
+  if(d.settled>=d.amount){ d.status='Fully settled'; }
+  else { d.status='Partially settled'; }
+  closeModal(); renderDues(); showToast('Settlement recorded');
+}
+
+function openNewDueModal(){
+  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
+  openModal(`
+    <h3>Register a due</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Register an outstanding amount owed by one Group Company to another.</p>
+    <div class="form-row">
+      <div class="form-group"><label>Creditor — company owed money</label><select id="ndCreditor">${coOpts}</select></div>
+      <div class="form-group"><label>Debtor — company that owes</label><select id="ndDebtor">${coOpts}</select></div>
+    </div>
+    <div class="form-group"><label>Description of the due</label><textarea id="ndDesc" placeholder="e.g. Engineering services provided Q3 2023, Invoice #1234…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Amount owed (EGP)</label><input type="number" id="ndAmount" placeholder="0"></div>
+      <div class="form-group"><label>Original due date</label><input type="date" id="ndDueDate" value="${today()}"></div>
+    </div>
+    <div class="form-group"><label>Amount already settled (EGP) — if any</label><input type="number" id="ndSettled" placeholder="0" value="0"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewDue()">Register due</button>
+    </div>
+  `);
+}
+
+function submitNewDue(){
+  const creditor=document.getElementById('ndCreditor').value;
+  const debtor=document.getElementById('ndDebtor').value;
+  const desc=document.getElementById('ndDesc').value.trim();
+  const amount=parseFloat(document.getElementById('ndAmount').value)||0;
+  const dueDate=document.getElementById('ndDueDate').value;
+  const settled=parseFloat(document.getElementById('ndSettled').value)||0;
+  if(!desc||!amount||!dueDate){ showToast('Please fill all fields','error'); return; }
+  if(creditor===debtor){ showToast('Creditor and debtor must be different companies','error'); return; }
+  const id=`DUE-${String(DUES.length+1).padStart(3,'0')}`;
+  DUES.push({id,creditor,debtor,desc,amount,dueDate,registeredBy:currentRole==='keeper'?'keeper':'creditor',registeredDate:today(),status:'Pending response',debtorResponse:'',settlementDate:null,settled});
+  const subject=`Qalaa Framework — New Due Registered: ${id}`;
+  const msg=`Dear Contact,\n\nA new outstanding due has been formally registered in the Qalaa Group Framework.\n\nDue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Due Registered — ${id}</h3>
+    <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Due registered. Notify both companies below.</div>
+    ${notifyPanel([creditor,debtor],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderDues()">Done</button></div>`);
+  showToast('Due registered successfully');
+}
+
 // ── COMPANIES ─────────────────────────────────────────────────────────────
 function renderCompanies(){
   const isKeeper=currentRole==='keeper';
@@ -1050,6 +1271,15 @@ function exportXLSX(){
     'Sourcing as Provider':SOURCING.filter(s=>s.provider===c).length
   }));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(coData),'Companies');
+
+  const duesData=DUES.map(d=>({
+    'Due ID':d.id,'Creditor':d.creditor,'Debtor':d.debtor,'Description':d.desc,
+    'Amount':d.amount,'Settled':d.settled,'Outstanding':d.amount-d.settled,
+    'Due Date':d.dueDate,'Days Overdue':Math.max(0,daysDiff(d.dueDate)),
+    'Fine Accrued':d.status!=='Fully settled'&&daysDiff(d.dueDate)>0?calcFine(d.amount-d.settled,d.dueDate):0,
+    'Status':d.status,'Debtor Response':d.debtorResponse,'Registered By':d.registeredBy,'Registered Date':d.registeredDate
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Group Dues');
 
   XLSX.writeFile(wb,`Qalaa_Framework_Report_${today()}.xlsx`);
   showToast('Excel report downloaded');
