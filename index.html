@@ -1343,7 +1343,7 @@ function renderStories(){
         </div>
         <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:12px">${fmtDate(s.date)}</span>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr ${s.value>0?'1fr':'};gap:10px;margin-bottom:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr ${s.value>0?'1fr':''};gap:10px;margin-bottom:12px">
         <div class="stat-card"><div class="stat-label">Company</div><div style="font-weight:600;margin-top:2px">${s.company}</div></div>
         ${s.partnerCompany?`<div class="stat-card"><div class="stat-label">Partner company</div><div style="font-weight:600;margin-top:2px">${s.partnerCompany}</div></div>`:''}
         ${s.value>0?`<div class="stat-card"><div class="stat-label">Value generated</div><div style="font-weight:600;color:var(--green);margin-top:2px">${fmt(parseFloat(s.value))}</div></div>`:''}
