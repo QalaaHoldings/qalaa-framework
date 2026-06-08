@@ -186,10 +186,7 @@ tr:hover td{background:#fafaf8}
       Incentive payments
       <span class="notif-dot" id="dot-payments" style="display:none"></span>
     </button>
-    <button class="nav-item" onclick="showPage('fines')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      Late payment fines
-    </button>
+
     <div class="nav-section">Sourcing</div>
     <button class="nav-item" onclick="showPage('sourcing')" id="nav-sourcing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
@@ -197,8 +194,12 @@ tr:hover td{background:#fafaf8}
     </button>
     <button class="nav-item" onclick="showPage('dues')" id="nav-dues">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Group dues register
+      Group overdue register
       <span class="notif-dot" id="dot-dues" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="showPage('stories')" id="nav-stories">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      Success stories
     </button>
     <div class="nav-section">Admin</div>
     <button class="nav-item" onclick="showPage('companies')">
@@ -298,7 +299,7 @@ function showError(msg) {
 // ── DATA ──────────────────────────────────────────────────────────────────
 const COMPANIES = [
   "Asec Engineering","Asec Automation ASA","ARESCO","ASCOM","United for Foundries UCF",
-  "GlassRock","OSTOOL","Nile Logistics","Taqa Gas","Taqa Power","Taqa Petroleum",
+  "GlassRock","OSTOOL","NPM","Taqa Gas","Taqa Power","Taqa Petroleum",
   "Taqa Water","Dina Farms","ERC","ACCM","Qalaa","GP Business Development"
 ];
 
@@ -312,7 +313,7 @@ const CONTACTS = {
   "United for Foundries UCF":{name:'',phone:'',email:''},
   "GlassRock":               {name:'',phone:'',email:''},
   "OSTOOL":                  {name:'',phone:'',email:''},
-  "Nile Logistics":          {name:'',phone:'',email:''},
+  "NPM":          {name:'',phone:'',email:''},
   "Taqa Gas":                {name:'',phone:'',email:''},
   "Taqa Power":              {name:'',phone:'',email:''},
   "Taqa Petroleum":          {name:'',phone:'',email:''},
@@ -428,8 +429,8 @@ function changeRole(r){
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
-const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,fines:renderFines,sourcing:renderSourcing,dues:renderDues,companies:renderCompanies,reports:renderReports};
-const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',fines:'Late payment fines',sourcing:'Intra-group sourcing',dues:'Group dues register',companies:'Group companies',reports:'Reports & export'};
+const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,sourcing:renderSourcing,dues:renderDues,stories:renderStories,companies:renderCompanies,reports:renderReports};
+const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',sourcing:'Intra-group sourcing',dues:'Group overdue register',stories:'Success stories',companies:'Group companies',reports:'Reports & export'};
 
 function showPage(p){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -473,8 +474,8 @@ function renderDashboard(){
   const totalDuesOutstanding=DUES.filter(d=>d.status!=='Fully settled').reduce((a,d)=>a+(d.amount-d.settled),0);
   if(pending>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} referral(s)</strong> awaiting your approval — <a href="#" onclick="showPage('approvals');return false">review now</a></div></div>`;
   if(pendingDues>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pendingDues} registered due(s)</strong> awaiting debtor response — <a href="#" onclick="showPage('dues');return false">view dues register</a></div></div>`;
-  if(disputedDues>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputedDues} due(s) disputed</strong> — require resolution — <a href="#" onclick="showPage('dues');return false">view dues register</a></div></div>`;
-  if(overduePay.length>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${overduePay.length} overdue incentive payment(s)</strong> — total fines accruing: ${fmt(totalFines)} — <a href="#" onclick="showPage('payments');return false">view payments</a></div></div>`;
+  if(disputedDues>0) alerts+=`<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputedDues} overdue(s) disputed</strong> — require resolution — <a href="#" onclick="showPage('dues');return false">view dues register</a></div></div>`;
+  if(overduePay.length>0) alerts+=`<div class="alert alert-amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${overduePay.length} overdue incentive payment(s)</strong> — <a href="#" onclick="showPage('payments');return false">view payments</a></div></div>`;
 
   const recentRows=REFERRALS.slice(-5).reverse().map(r=>`
     <tr>
@@ -513,15 +514,11 @@ function renderDashboard(){
         <div class="stat-value" style="font-size:18px">${fmt(totalIncentives)}</div>
         <div class="stat-sub">${fmt(paid)} paid · ${fmt(totalIncentives-paid)} outstanding</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Active fines</div>
-        <div class="stat-value" style="font-size:18px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div>
-        <div class="stat-sub">${overduePay.length} payment(s) overdue</div>
-      </div>
+
       <div class="stat-card" style="cursor:pointer" onclick="showPage('dues')">
-        <div class="stat-label">Group dues outstanding</div>
+        <div class="stat-label">Group overdue outstanding</div>
         <div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalDuesOutstanding)}</div>
-        <div class="stat-sub">${DUES.filter(d=>d.status!=='Fully settled').length} active due(s)</div>
+        <div class="stat-sub">${DUES.filter(d=>d.status!=='Fully settled').length} active overdue(s)</div>
       </div>
     </div>
 
@@ -667,11 +664,9 @@ function viewReferral(id){
       <div class="stat-card"><div class="stat-label">Incentive (0.5%)</div><div style="font-weight:600;color:${incentive>0?'var(--blue)':'var(--text)'}">${incentive>0?fmt(incentive):'—'}</div></div>
     </div>
     ${outstanding>0?`
-      <div class="alert ${fine>0?'alert-red':'alert-amber'}">
+      <div class="alert alert-amber">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div>Outstanding incentive: <strong>${fmt(outstanding)}</strong> — due ${fmtDate(r.paymentDue)}
-        ${fine>0?` — <strong>Fine accrued: ${fmt(fine)}</strong>`:''}
-        </div>
+        <div>Outstanding incentive: <strong>${fmt(outstanding)}</strong> — due ${fmtDate(r.paymentDue)}</div>
       </div>`:''}
     ${isPending&&isKeeper?`
       <div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-top:4px">
@@ -841,7 +836,6 @@ function renderPayments(){
       <td>${fmt(r.incentivePaid)}</td>
       <td style="color:${outstanding>0?'var(--red)':'var(--green)'}"><strong>${fmt(outstanding)}</strong></td>
       <td>${fmtDate(r.paymentDue)}</td>
-      <td>${fine>0?`<span style="color:var(--red);font-weight:600">${fmt(fine)}</span>`:'—'}</td>
       <td>${getStatusBadge(statusLabel)}${currentRole==='keeper'&&outstanding>0?`<br><button class="btn btn-sm" style="margin-top:4px" onclick="markPaid('${r.id}')">Mark paid</button>`:''}</td>
     </tr>`;
   }).join('');
@@ -859,43 +853,19 @@ function renderPayments(){
       <div class="stat-card"><div class="stat-label">Total incentives due</div><div class="stat-value" style="font-size:18px">${fmt(totalIncentive)}</div></div>
       <div class="stat-card"><div class="stat-label">Paid</div><div class="stat-value" style="font-size:18px;color:var(--green)">${fmt(totalPaid)}</div></div>
       <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value" style="font-size:18px;color:var(--amber)">${fmt(totalOutstanding)}</div></div>
-      <div class="stat-card"><div class="stat-label">Active fines</div><div class="stat-value" style="font-size:18px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div></div>
+
     </div>
-    ${totalFines>0?`<div class="alert alert-red" style="margin-bottom:18px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Late payment fines are accruing daily at 0.05% of outstanding amounts. Settle outstanding payments to stop fines.</div>`:''}
+
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Referral</th><th>Referring</th><th>Receiving</th><th>Collected</th><th>Incentive (0.5%)</th><th>Paid</th><th>Outstanding</th><th>Due date</th><th>Fine</th><th>Status</th></tr></thead>
+        <thead><tr><th>Referral</th><th>Referring</th><th>Receiving</th><th>Collected</th><th>Incentive (0.5%)</th><th>Paid</th><th>Outstanding</th><th>Due date</th><th>Status</th></tr></thead>
         <tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">No secured business yet</td></tr>'}</tbody>
       </table>
     </div>
   `;
 }
 
-// ── FINES ─────────────────────────────────────────────────────────────────
-function renderFines(){
-  document.getElementById('topbarActions').innerHTML='';
-  document.getElementById('mainContent').innerHTML=`
-    <div class="card" style="max-width:500px;margin-bottom:24px">
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Late payment fine calculator</h3>
-      <div class="form-group"><label>Outstanding amount (EGP)</label><input type="number" id="fcAmt" placeholder="0" oninput="calcFineDisplay()"></div>
-      <div class="form-group"><label>Payment due date</label><input type="date" id="fcDue" value="${today()}" oninput="calcFineDisplay()"></div>
-      <div id="fineResult" style="margin-top:16px"></div>
-    </div>
-    <div class="card">
-      <h3 style="font-size:14px;font-weight:600;margin-bottom:14px">Fine policy summary</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div class="stat-card"><div class="stat-label">Daily rate</div><div class="stat-value" style="font-size:20px">0.05%</div><div class="stat-sub">of outstanding amount</div></div>
-        <div class="stat-card"><div class="stat-label">Maximum cap</div><div class="stat-value" style="font-size:20px">10%</div><div class="stat-sub">of original amount owed</div></div>
-        <div class="stat-card"><div class="stat-label">Starts accruing</div><div class="stat-value" style="font-size:16px">Day after</div><div class="stat-sub">the due date</div></div>
-      </div>
-    </div>
-  `;
-}
 
-function calcFineDisplay(){
-  const amt=parseFloat(document.getElementById('fcAmt').value)||0;
-  const due=document.getElementById('fcDue').value;
-  if(!amt||!due){ document.getElementById('fineResult').innerHTML=''; return; }
   const days=daysDiff(due);
   if(days<=0){ document.getElementById('fineResult').innerHTML=`<div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Payment is not yet overdue.</div>`; return; }
   const fine=calcFine(amt,due);
@@ -1011,7 +981,7 @@ function dueStatusBadge(s){
 
 function renderDues(){
   const isKeeper=currentRole==='keeper';
-  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewDueModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register due</button>`;
+  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewDueModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register overdue</button>`;
 
   // Filter based on role
   const visibleDues = isKeeper ? DUES : DUES.filter(d => {
@@ -1040,25 +1010,24 @@ function renderDues(){
       <td style="font-size:12px;color:var(--green)">${d.settled>0?fmt(d.settled):'—'}</td>
       <td style="font-size:12px;color:${outstanding>0?'var(--red)':'var(--green)'}"><strong>${fmt(outstanding)}</strong></td>
       <td style="font-size:12px">${fmtDate(d.dueDate)}<br><span style="color:${overdueDays>0?'var(--red)':'var(--green)'}; font-size:11px">${overdueDays>0?overdueDays+' days overdue':'On time'}</span></td>
-      <td style="font-size:12px;color:${fine>0?'var(--red)':'var(--text3)'}"><strong>${fine>0?fmt(fine):'—'}</strong></td>
       <td>${dueStatusBadge(d.status)}</td>
       <td><button class="btn btn-sm" onclick="viewDue('${d.id}')">View</button></td>
     </tr>`;
   }).join('');
 
   document.getElementById('mainContent').innerHTML=`
-    ${pending>0?`<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} due(s)</strong> are awaiting a response from the debtor company.</div></div>`:''}
+    ${pending>0?`<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} overdue(s)</strong> are awaiting a response from the debtor company.</div></div>`:''}
     ${disputed>0?`<div class="alert alert-red" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputed} due(s)</strong> are disputed and require resolution.</div></div>`:''}
     <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">Total registered dues</div><div class="stat-value">${DUES.length}</div></div>
       <div class="stat-card"><div class="stat-label">Total outstanding</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalDues)}</div></div>
       <div class="stat-card"><div class="stat-label">Total overdue amount</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalOverdue)}</div></div>
-      <div class="stat-card"><div class="stat-label">Total fines accruing</div><div class="stat-value" style="font-size:17px;color:${totalFines>0?'var(--red)':'var(--text)'}">${fmt(totalFines)}</div></div>
+
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Creditor / Debtor</th><th>Description</th><th>Amount</th><th>Settled</th><th>Outstanding</th><th>Due date</th><th>Fine</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No dues registered yet</td></tr>'}</tbody>
+        <thead><tr><th>Creditor / Debtor</th><th>Description</th><th>Amount</th><th>Settled</th><th>Outstanding</th><th>Due date</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No overdues registered yet</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -1074,7 +1043,7 @@ function viewDue(id){
   const fine=d.status!=='Fully settled'&&overdueDays>0?calcFine(outstanding,d.dueDate):0;
 
   openModal(`
-    <h3>Due — ${d.id}</h3>
+    <h3>Overdue — ${d.id}</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div class="stat-card"><div class="stat-label">Creditor (owed money)</div><div style="font-weight:600;color:var(--green);margin-top:4px">${d.creditor}</div></div>
       <div class="stat-card"><div class="stat-label">Debtor (owes money)</div><div style="font-weight:600;color:var(--red);margin-top:4px">${d.debtor}</div></div>
@@ -1087,7 +1056,7 @@ function viewDue(id){
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div class="stat-card"><div class="stat-label">Due date</div><div style="font-weight:600">${fmtDate(d.dueDate)}</div><div style="font-size:11px;color:${overdueDays>0?'var(--red)':'var(--green)'};margin-top:2px">${overdueDays>0?overdueDays+' days overdue':'Not yet overdue'}</div></div>
-      <div class="stat-card"><div class="stat-label">Late payment fine</div><div style="font-weight:600;color:${fine>0?'var(--red)':'var(--text3)'}">${fine>0?fmt(fine):'None yet'}</div><div style="font-size:11px;color:var(--text3);margin-top:2px">${fine>0?'Accruing at 0.05%/day':''}</div></div>
+
     </div>
     <div style="margin-bottom:16px">
       <label>Status</label>
@@ -1118,7 +1087,7 @@ function viewDue(id){
     </div>`:''}
     ${(()=>{
       const subject=`Qalaa Framework — Due Notice: ${d.id}`;
-      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding due registered in the Qalaa Group Framework.\n\nDue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding overdue registered in the Qalaa Group Framework.\n\nOverdue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
       return notifyPanel([d.creditor,d.debtor],subject,msg);
     })()}
     <div class="modal-footer">
@@ -1155,7 +1124,7 @@ async function settleDue(id){
 function openNewDueModal(){
   const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
   openModal(`
-    <h3>Register a due</h3>
+    <h3>Register an overdue</h3>
     <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Register an outstanding amount owed by one Group Company to another.</p>
     <div class="form-row">
       <div class="form-group"><label>Creditor — company owed money</label><select id="ndCreditor">${coOpts}</select></div>
@@ -1169,7 +1138,7 @@ function openNewDueModal(){
     <div class="form-group"><label>Amount already settled (EGP) — if any</label><input type="number" id="ndSettled" placeholder="0" value="0"></div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitNewDue()">Register due</button>
+      <button class="btn btn-primary" onclick="submitNewDue()">Register overdue</button>
     </div>
   `);
 }
@@ -1183,16 +1152,16 @@ async function submitNewDue(){
   const settled=parseFloat(document.getElementById('ndSettled').value)||0;
   if(!desc||!amount||!dueDate){ showToast('Please fill all fields','error'); return; }
   if(creditor===debtor){ showToast('Creditor and debtor must be different companies','error'); return; }
-  const id=`DUE-${String(DUES.length+1).padStart(3,'0')}`;
+  const id=`OVD-${String(DUES.length+1).padStart(3,'0')}`;
   const newDue={id,creditor,debtor,desc,amount:parseFloat(amount),dueDate,registeredBy:currentRole==='keeper'?'keeper':'creditor',registeredDate:today(),status:'Pending response',debtorResponse:'',settlementDate:'',settled:parseFloat(settled)||0};
   showLoader('Saving due…');
   await apiWrite('Dues', newDue);
   DUES.push(newDue);
   hideLoader();
-  const subject=`Qalaa Framework — New Due Registered: ${id}`;
-  const msg=`Dear Contact,\n\nA new outstanding due has been formally registered in the Qalaa Group Framework.\n\nDue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`Qalaa Framework — New Overdue Registered: ${id}`;
+  const msg=`Dear Contact,\n\nA new outstanding overdue has been formally registered in the Qalaa Group Framework.\n\nOverdue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
   closeModal();
-  openModal(`<h3>Due Registered — ${id}</h3>
+  openModal(`<h3>Overdue Registered — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Due registered. Notify both companies below.</div>
     ${notifyPanel([creditor,debtor],subject,msg)}
     <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderDues()">Done</button></div>`);
@@ -1345,7 +1314,7 @@ function exportXLSX(){
     'Fine Accrued':d.status!=='Fully settled'&&daysDiff(d.dueDate)>0?calcFine(d.amount-d.settled,d.dueDate):0,
     'Status':d.status,'Debtor Response':d.debtorResponse,'Registered By':d.registeredBy,'Registered Date':d.registeredDate
   }));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Group Dues');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Group Overdue');
 
   XLSX.writeFile(wb,`Qalaa_Framework_Report_${today()}.xlsx`);
   showToast('Excel report downloaded');
@@ -1360,7 +1329,120 @@ function showToast(msg,type='success'){
   setTimeout(()=>t.remove(),3000);
 }
 
+// ── SUCCESS STORIES ──────────────────────────────────────────────────────
+function renderStories(){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewStoryModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add story</button>`;
+
+  if(STORIES.length===0){
+    document.getElementById('mainContent').innerHTML=`
+      <div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        <p style="font-size:15px;font-weight:600;margin-bottom:8px">No success stories yet</p>
+        <p style="font-size:13px">Be the first to register a win for the Group!</p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="openNewStoryModal()">Add first story</button>
+      </div>`;
+    return;
+  }
+
+  const cards=STORIES.map(s=>`
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <span class="badge badge-${s.type==='Cross-sell'?'blue':s.type==='Intra-group sourcing'?'teal':s.type==='New client'?'green':'purple'}" style="margin-bottom:6px">${s.type}</span>
+          <h3 style="font-size:15px;font-weight:600;margin-top:4px">${s.title}</h3>
+        </div>
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:12px">${fmtDate(s.date)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr ${s.value>0?'1fr':'};gap:10px;margin-bottom:12px">
+        <div class="stat-card"><div class="stat-label">Company</div><div style="font-weight:600;margin-top:2px">${s.company}</div></div>
+        ${s.partnerCompany?`<div class="stat-card"><div class="stat-label">Partner company</div><div style="font-weight:600;margin-top:2px">${s.partnerCompany}</div></div>`:''}
+        ${s.value>0?`<div class="stat-card"><div class="stat-label">Value generated</div><div style="font-weight:600;color:var(--green);margin-top:2px">${fmt(parseFloat(s.value))}</div></div>`:''}
+      </div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${s.story}</p>
+      ${s.lesson?`<div style="background:var(--blue-bg);border-left:3px solid var(--blue);padding:10px 14px;border-radius:0 var(--radius) var(--radius) 0;font-size:12px;color:var(--blue)"><strong>Key lesson:</strong> ${s.lesson}</div>`:''}
+      ${isKeeper?`
+      <div style="margin-top:12px">
+        ${(()=>{
+          const subject=`Qalaa Framework — Success Story: ${s.title}`;
+          const msg=`Dear Contact,\n\nA new success story has been shared on the Qalaa Group Framework.\n\nTitle: ${s.title}\nType: ${s.type}\nCompany: ${s.company}${s.partnerCompany?'\nPartner: '+s.partnerCompany:''}${s.value>0?'\nValue: '+fmt(parseFloat(s.value)):''}\n\nStory:\n${s.story}${s.lesson?'\n\nKey lesson: '+s.lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+          return notifyPanel([s.company,s.partnerCompany].filter(Boolean),subject,msg);
+        })()}
+      </div>`:''}
+    </div>`).join('');
+
+  document.getElementById('mainContent').innerHTML=`
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Total stories</div><div class="stat-value">${STORIES.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Cross-sell wins</div><div class="stat-value">${STORIES.filter(s=>s.type==='Cross-sell').length}</div></div>
+      <div class="stat-card"><div class="stat-label">Total value shared</div><div class="stat-value" style="font-size:17px;color:var(--green)">${fmt(STORIES.reduce((a,s)=>a+(parseFloat(s.value)||0),0))}</div></div>
+      <div class="stat-card"><div class="stat-label">Companies featured</div><div class="stat-value">${new Set(STORIES.map(s=>s.company)).size}</div></div>
+    </div>
+    ${cards}
+  `;
+}
+
+function openNewStoryModal(){
+  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
+  openModal(`
+    <h3>Add success story</h3>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Share a win with the Group — a new client, a cross-sell, or a great collaboration between companies.</p>
+    <div class="form-group"><label>Story title</label><input type="text" id="nsTitle" placeholder="e.g. ARESCO wins EGP 5M contract through Asec Engineering referral"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Reporting company</label><select id="nsCompany">${coOpts}</select></div>
+      <div class="form-group"><label>Partner company (if any)</label><select id="nsPartner"><option value="">— None —</option>${coOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Story type</label>
+        <select id="nsType">
+          <option>Cross-sell</option>
+          <option>Intra-group sourcing</option>
+          <option>New client</option>
+          <option>Cost saving</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Date</label><input type="date" id="nsDate" value="${today()}"></div>
+    </div>
+    <div class="form-group"><label>Value generated (EGP) — optional</label><input type="number" id="nsValue" placeholder="0"></div>
+    <div class="form-group"><label>Tell the story</label><textarea id="nsStory" style="min-height:100px" placeholder="What happened? How did the collaboration work? What was the outcome?"></textarea></div>
+    <div class="form-group"><label>Key lesson or takeaway — optional</label><input type="text" id="nsLesson" placeholder="e.g. Early involvement of logistics team saved 3 weeks of delays"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitStory()">Share story</button>
+    </div>
+  `);
+}
+
+async function submitStory(){
+  const title=document.getElementById('nsTitle').value.trim();
+  const company=document.getElementById('nsCompany').value;
+  const partner=document.getElementById('nsPartner').value;
+  const type=document.getElementById('nsType').value;
+  const date=document.getElementById('nsDate').value;
+  const value=parseFloat(document.getElementById('nsValue').value)||0;
+  const story=document.getElementById('nsStory').value.trim();
+  const lesson=document.getElementById('nsLesson').value.trim();
+  if(!title||!story){ showToast('Please fill in the title and story','error'); return; }
+  const id=`STR-${String(STORIES.length+1).padStart(3,'0')}`;
+  const newStory={id,title,company,partnerCompany:partner,type,date,value,story,lesson,registeredDate:today()};
+  showLoader('Saving story…');
+  await apiWrite('Stories', newStory);
+  STORIES.push(newStory);
+  hideLoader();
+  const subject=`Qalaa Framework — New Success Story: ${title}`;
+  const msg=`Dear Contact,\n\nA new success story has been shared on the Qalaa Group Framework!\n\nTitle: ${title}\nType: ${type}\nCompany: ${company}${partner?'\nPartner: '+partner:''}${value>0?'\nValue generated: '+fmt(value):''}\n\nStory:\n${story}${lesson?'\n\nKey lesson: '+lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  closeModal();
+  openModal(`<h3>Story Shared! 🌟</h3>
+    <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Success story saved. Notify the companies below.</div>
+    ${notifyPanel([company,partner].filter(Boolean),subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderStories()">Done</button></div>`);
+  showToast('Success story shared with the Group!');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
+let STORIES = [];
+
 async function loadAllData() {
   showLoader('Connecting to database…');
   try {
@@ -1391,6 +1473,9 @@ async function loadAllData() {
 
     showLoader('Loading contacts…');
     CONTACTS_RAW = await apiRead('Contacts');
+
+    showLoader('Loading success stories…');
+    STORIES = await apiRead('Stories');
 
     hideLoader();
     updateNotifDots();
