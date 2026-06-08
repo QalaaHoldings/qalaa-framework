@@ -866,18 +866,7 @@ function renderPayments(){
 }
 
 
-  const days=daysDiff(due);
-  if(days<=0){ document.getElementById('fineResult').innerHTML=`<div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Payment is not yet overdue.</div>`; return; }
-  const fine=calcFine(amt,due);
-  const capped=fine>=amt*0.10;
-  document.getElementById('fineResult').innerHTML=`
-    <div class="fine-display">
-      <div class="fine-amount">${fmt(fine)}</div>
-      <div class="fine-label">Fine accrued over ${days} day${days>1?'s':''} ${capped?'(maximum cap reached)':''}</div>
-    </div>
-    <div style="margin-top:12px;font-size:12px;color:var(--text3)">Daily fine: ${fmt(Math.round(amt*0.0005))} · Total original: ${fmt(amt)} · Cap: ${fmt(Math.round(amt*0.10))}</div>
-  `;
-}
+
 
 // ── SOURCING ──────────────────────────────────────────────────────────────
 function renderSourcing(){
