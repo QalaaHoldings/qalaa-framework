@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Qalaa Holdings — Framework Operations Tool</title>
+<title>KEEP — The Group, Working Together</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -153,8 +153,8 @@ tr:hover td{background:#fafaf8}
 <!-- Sidebar -->
 <div class="sidebar">
   <div class="sidebar-logo">
-    <h1>Qalaa Holdings</h1>
-    <p>Framework Operations</p>
+    <h1>KEEP</h1>
+    <p>The Group, Working Together</p>
   </div>
   <div class="role-selector">
     <label>Viewing as</label>
@@ -693,8 +693,8 @@ function viewReferral(id){
         </div>
       </div>`:''}
     ${(()=>{
-      const subject=`Qalaa Framework — Update on ${r.id}: ${r.client}`;
-      const msg=`Dear Contact,\n\nThis is an update regarding referral ${r.id} (${r.client}).\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nStatus: ${r.status}\nEstimated value: ${fmt(r.value)}${r.collected>0?`\nIncentive due: ${fmt(Math.round(r.collected*0.005))}\nOutstanding: ${fmt(Math.round(r.collected*0.005)-r.incentivePaid)}`:''}\n\nPlease log in to the Qalaa Framework tool for full details.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+      const subject=`KEEP — Update on ${r.id}: ${r.client}`;
+      const msg=`Dear Contact,\n\nThis is an update regarding referral ${r.id} (${r.client}).\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nStatus: ${r.status}\nEstimated value: ${fmt(r.value)}${r.collected>0?`\nIncentive due: ${fmt(Math.round(r.collected*0.005))}\nOutstanding: ${fmt(Math.round(r.collected*0.005)-r.incentivePaid)}`:''}\n\nPlease log in to the KEEP platform tool for full details.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
       return notifyPanel([r.referring,r.receiving],subject,msg);
     })()}
     <div class="modal-footer">
@@ -709,8 +709,8 @@ async function approveReferral(id){
   if(!r) return;
   r.referralStatus='approved'; r.status=r.status==='Pending approval'?'In negotiation':r.status;
   showLoader('Saving…'); await apiUpdate('Referrals', r.id, r); hideLoader();
-  const subject=`Qalaa Framework — Referral ${r.id} Approved`;
-  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has been APPROVED by the Group BD Director.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\nThe receiving company may now proceed with the opportunity.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — Referral ${r.id} Approved`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has been APPROVED by the Group BD Director.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\nThe receiving company may now proceed with the opportunity.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Referral ${r.id} — Approved</h3>
     <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Referral approved. Notify the companies below.</div>
@@ -723,8 +723,8 @@ async function rejectReferral(id){
   if(!r) return;
   r.referralStatus='rejected'; r.status='Rejected';
   showLoader('Saving…'); await apiUpdate('Referrals', r.id, r); hideLoader();
-  const subject=`Qalaa Framework — Referral ${r.id} Not Approved`;
-  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has not been approved at this time.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\n\nPlease contact the Group BD Director for further information.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — Referral ${r.id} Not Approved`;
+  const msg=`Dear Contact,\n\nReferral ${r.id} for the opportunity with ${r.client} has not been approved at this time.\n\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\n\nPlease contact the Group BD Director for further information.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Referral ${r.id} — Rejected</h3>
     <div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Referral rejected. Notify the companies below.</div>
@@ -737,8 +737,8 @@ async function markPaid(id){
   if(!r) return;
   r.incentivePaid=Math.round(r.collected*0.005);
   showLoader('Saving…'); await apiUpdate('Referrals', r.id, r); hideLoader();
-  const subject=`Qalaa Framework — Incentive Payment Processed for ${r.id}`;
-  const msg=`Dear Contact,\n\nThe referral incentive for ${r.id} (${r.client}) has been marked as PAID.\n\nReferring company: ${r.referring}\nAmount paid: ${fmt(r.incentivePaid)}\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — Incentive Payment Processed for ${r.id}`;
+  const msg=`Dear Contact,\n\nThe referral incentive for ${r.id} (${r.client}) has been marked as PAID.\n\nReferring company: ${r.referring}\nAmount paid: ${fmt(r.incentivePaid)}\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Incentive Paid — ${r.id}</h3>
     <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Incentive marked as paid. Notify the referring company below.</div>
@@ -783,8 +783,8 @@ async function submitNewReferral(){
   await apiWrite('Referrals', newRef);
   REFERRALS.push(newRef);
   hideLoader();
-  const subject=`Qalaa Framework — New Referral Registered: ${id}`;
-  const msg=`Dear Contact,\n\nA new referral has been registered in the Qalaa Framework.\n\nReferral ID: ${id}\nClient: ${client}\nOpportunity: ${desc}\nEstimated value: EGP ${Number(value).toLocaleString()}\nReferring company: ${ref}\nReceiving company: ${rec}\n\nThis referral is pending approval by the Group BD Director.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — New Referral Registered: ${id}`;
+  const msg=`Dear Contact,\n\nA new referral has been registered in the KEEP platform.\n\nReferral ID: ${id}\nClient: ${client}\nOpportunity: ${desc}\nEstimated value: EGP ${Number(value).toLocaleString()}\nReferring company: ${ref}\nReceiving company: ${rec}\n\nThis referral is pending approval by the Group BD Director.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Referral Registered — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Referral registered successfully. Notify the companies below.</div>
@@ -962,8 +962,8 @@ async function submitSourcing(){
   await apiWrite('Sourcing', newSrc);
   SOURCING.push(newSrc);
   hideLoader();
-  const subject=`Qalaa Framework — New Sourcing Request: ${id}`;
-  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — New Sourcing Request: ${id}`;
+  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Sourcing Request Submitted — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Sourcing request submitted. Notify the companies below.</div>
@@ -1092,8 +1092,8 @@ function viewDue(id){
       <button class="btn btn-success btn-sm" onclick="settleDue(currentModalDueId)">Record settlement</button>
     </div>`:''}
     ${(()=>{
-      const subject=`Qalaa Framework — Due Notice: ${d.id}`;
-      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding overdue registered in the Qalaa Group Framework.\n\nOverdue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+      const subject=`KEEP — Due Notice: ${d.id}`;
+      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding overdue registered in the KEEP platform.\n\nOverdue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
       return notifyPanel([d.creditor,d.debtor],subject,msg);
     })()}
     <div class="modal-footer">
@@ -1164,8 +1164,8 @@ async function submitNewDue(){
   await apiWrite('Dues', newDue);
   DUES.push(newDue);
   hideLoader();
-  const subject=`Qalaa Framework — New Overdue Registered: ${id}`;
-  const msg=`Dear Contact,\n\nA new outstanding overdue has been formally registered in the Qalaa Group Framework.\n\nOverdue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — New Overdue Registered: ${id}`;
+  const msg=`Dear Contact,\n\nA new outstanding overdue has been formally registered in the KEEP platform.\n\nOverdue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Overdue Registered — ${id}</h3>
     <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Due registered. Notify both companies below.</div>
@@ -1195,7 +1195,7 @@ function renderCompanies(){
         <div style="display:flex;gap:5px;align-items:center">
           ${isKeeper?`<button class="btn btn-sm" onclick="editContactSafe(this)" data-co="${encodeURIComponent(c)}">Edit contact</button>`:''}
           ${ct.email?`<a href="mailto:${ct.email}" class="btn btn-sm" style="text-decoration:none" title="Email ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg></a>`:''}
-          ${ct.phone?`<a href="${waLink(ct.phone,'Hello from Qalaa Holdings Framework tool.')}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--green-bg);color:var(--green);border-color:var(--green-light)" title="WhatsApp ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>`:''}
+          ${ct.phone?`<a href="${waLink(ct.phone,'Hello from KEEP platform tool.')}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--green-bg);color:var(--green);border-color:var(--green-light)" title="WhatsApp ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>`:''}
         </div>
       </td>
     </tr>`;
@@ -1317,7 +1317,7 @@ function exportXLSX(){
   }));
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Group Overdue');
 
-  XLSX.writeFile(wb,`Qalaa_Framework_Report_${today()}.xlsx`);
+  XLSX.writeFile(wb,`KEEP_Report_${today()}.xlsx`);
   showToast('Excel report downloaded');
 }
 
@@ -1365,8 +1365,8 @@ function renderStories(){
       ${isKeeper?`
       <div style="margin-top:12px">
         ${(()=>{
-          const subject=`Qalaa Framework — Success Story: ${s.title}`;
-          const msg=`Dear Contact,\n\nA new success story has been shared on the Qalaa Group Framework.\n\nTitle: ${s.title}\nType: ${s.type}\nCompany: ${s.company}${s.partnerCompany?'\nPartner: '+s.partnerCompany:''}${s.value>0?'\nValue: '+fmt(parseFloat(s.value)):''}\n\nStory:\n${s.story}${s.lesson?'\n\nKey lesson: '+s.lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+          const subject=`KEEP — Success Story: ${s.title}`;
+          const msg=`Dear Contact,\n\nA new success story has been shared on the KEEP platform.\n\nTitle: ${s.title}\nType: ${s.type}\nCompany: ${s.company}${s.partnerCompany?'\nPartner: '+s.partnerCompany:''}${s.value>0?'\nValue: '+fmt(parseFloat(s.value)):''}\n\nStory:\n${s.story}${s.lesson?'\n\nKey lesson: '+s.lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
           return notifyPanel([s.company,s.partnerCompany].filter(Boolean),subject,msg);
         })()}
       </div>`:''}
@@ -1431,8 +1431,8 @@ async function submitStory(){
   await apiWrite('Stories', newStory);
   STORIES.push(newStory);
   hideLoader();
-  const subject=`Qalaa Framework — New Success Story: ${title}`;
-  const msg=`Dear Contact,\n\nA new success story has been shared on the Qalaa Group Framework!\n\nTitle: ${title}\nType: ${type}\nCompany: ${company}${partner?'\nPartner: '+partner:''}${value>0?'\nValue generated: '+fmt(value):''}\n\nStory:\n${story}${lesson?'\n\nKey lesson: '+lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nQalaa Holdings — Group Business Development`;
+  const subject=`KEEP — New Success Story: ${title}`;
+  const msg=`Dear Contact,\n\nA new success story has been shared on the KEEP platform!\n\nTitle: ${title}\nType: ${type}\nCompany: ${company}${partner?'\nPartner: '+partner:''}${value>0?'\nValue generated: '+fmt(value):''}\n\nStory:\n${story}${lesson?'\n\nKey lesson: '+lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
   openModal(`<h3>Story Shared! 🌟</h3>
     <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Success story saved. Notify the companies below.</div>
