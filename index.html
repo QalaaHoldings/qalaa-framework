@@ -421,19 +421,34 @@ function calcFine(amount, dueDate){
 
 function getStatusBadge(s){
   const map={
-    'Pending approval':'<span class="badge badge-amber">Pending approval</span>',
-    'approved':'<span class="badge badge-blue">Approved</span>',
-    'In negotiation':'<span class="badge badge-blue">In negotiation</span>',
-    'Secured':'<span class="badge badge-green">Secured</span>',
-    'Completed':'<span class="badge badge-green">Completed</span>',
-    'Rejected':'<span class="badge badge-red">Rejected</span>',
-    'In progress':'<span class="badge badge-teal">In progress</span>',
-    'Pending response':'<span class="badge badge-amber">Pending response</span>',
-    'Overdue':'<span class="badge badge-red">Overdue</span>',
-    'Paid':'<span class="badge badge-green">Paid</span>',
+    'Pending approval':     '<span class="badge badge-amber">Pending approval</span>',
+    'approved':             '<span class="badge badge-blue">Approved</span>',
+    'Under negotiation':    '<span class="badge badge-blue">Under negotiation</span>',
+    'In negotiation':       '<span class="badge badge-blue">Under negotiation</span>',
+    'Apology':              '<span class="badge badge-red">Apology</span>',
+    'Failed technically':   '<span class="badge badge-red">Failed technically</span>',
+    'Failed commercially':  '<span class="badge badge-red">Failed commercially</span>',
+    'Secured':              '<span class="badge badge-teal">Secured</span>',
+    'Signed':               '<span class="badge badge-purple">Signed</span>',
+    'Completed':            '<span class="badge badge-green">Completed</span>',
+    'Rejected':             '<span class="badge badge-red">Rejected</span>',
+    'In progress':          '<span class="badge badge-teal">In progress</span>',
+    'Pending response':     '<span class="badge badge-amber">Pending response</span>',
+    'Overdue':              '<span class="badge badge-red">Overdue</span>',
+    'Paid':                 '<span class="badge badge-green">Paid</span>',
   };
   return map[s]||`<span class="badge badge-gray">${s}</span>`;
 }
+
+const REFERRAL_STATUSES = [
+  'Under negotiation',
+  'Apology',
+  'Failed technically',
+  'Failed commercially',
+  'Secured',
+  'Signed',
+  'Completed'
+];
 
 // ── ROLE CONTROL ──────────────────────────────────────────────────────────
 function changeRole(r){
@@ -632,7 +647,14 @@ function renderReferrals(){
       <input type="text" placeholder="Search referrals…" oninput="filterReferralTable(this.value)">
       <select onchange="filterReferralStatus(this.value)">
         <option value="">All statuses</option>
-        <option>Pending approval</option><option>In negotiation</option><option>Secured</option><option>Rejected</option>
+        <option>Pending approval</option>
+        <option>Under negotiation</option>
+        <option>Apology</option>
+        <option>Failed technically</option>
+        <option>Failed commercially</option>
+        <option>Secured</option>
+        <option>Signed</option>
+        <option>Completed</option>
       </select>
     </div>
     <div class="table-wrap">
@@ -732,6 +754,26 @@ async function rejectReferral(id){
     <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderApprovals()">Done</button></div>`);
   showToast('Referral rejected');
 }
+async function updateReferralStatus(id){
+  const newStatus = document.getElementById('statusUpdateSelect').value;
+  if(!newStatus){ showToast('Please select a status','error'); return; }
+  const r = REFERRALS.find(x=>x.id===id);
+  if(!r) return;
+  const oldStatus = r.status;
+  r.status = newStatus;
+  showLoader('Updating status…');
+  await apiUpdate('Referrals', id, r);
+  hideLoader();
+  const subject=`KEEP — Referral ${id} Status Updated`;
+  const msg=`Dear Contact,\n\nThe status of referral ${id} (${r.client}) has been updated.\n\nPrevious status: ${oldStatus}\nNew status: ${newStatus}\nReferring company: ${r.referring}\nReceiving company: ${r.receiving}\nEstimated value: ${fmt(r.value)}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
+  closeModal();
+  openModal(`<h3>Status Updated — ${id}</h3>
+    <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Status changed to <strong>${newStatus}</strong>. Notify companies below.</div>
+    ${notifyPanel([r.referring,r.receiving],subject,msg)}
+    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderReferrals()">Done</button></div>`);
+  showToast('Status updated to: '+newStatus);
+}
+
 async function markPaid(id){
   const r=REFERRALS.find(x=>x.id===id);
   if(!r) return;
