@@ -687,7 +687,16 @@ function viewReferral(id){
   const isKeeper=currentRole==='keeper';
   const isPending=r.referralStatus==='pending';
 
-  openModal(`
+  // Build status update section safely (no nested backticks)
+  let statusSection = '';
+  if(isKeeper){
+    const statuses = ['Under negotiation','Apology','Failed technically','Failed commercially','Secured','Signed','Completed'];
+    let opts = '<option value="">— Select new status —</option>';
+    statuses.forEach(function(s){ opts += '<option value="'+s+'"'+(r.status===s?' selected':'')+'>'+s+'</option>'; });
+    statusSection = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:4px;margin-bottom:4px"><label style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;display:block">Update referral status</label><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="statusUpdateSelect" style="flex:1;min-width:180px">'+opts+'</select><button class="btn btn-primary" onclick="updateReferralStatus(currentModalRefId)">Update status</button></div></div>';
+  }
+
+  openModal(statusSection+`
     <h3>Referral — ${r.id}</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px">
       <div class="stat-card"><div class="stat-label">Client</div><div style="font-weight:600;margin-top:4px">${r.client}</div></div>
