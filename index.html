@@ -946,6 +946,245 @@ function renderPayments(){
 
 
 
+
+// ── FINES (calc helper only) ──────────────────────────────────────────────
+function calcFineDisplay(){
+  const amt=parseFloat(document.getElementById('fcAmt').value)||0;
+  const due=document.getElementById('fcDue').value;
+  if(!amt||!due){ document.getElementById('fineResult').innerHTML=''; return; }
+  const days=daysDiff(due);
+  if(days<=0){ document.getElementById('fineResult').innerHTML='<div class="alert alert-green">Payment is not yet overdue.</div>'; return; }
+  const fine=calcFine(amt,due);
+  document.getElementById('fineResult').innerHTML='<div class="fine-display"><div class="fine-amount">'+fmt(fine)+'</div><div class="fine-label">Fine accrued over '+days+' day'+(days>1?'s':'')+'</div></div>';
+}
+
+// ── DUES ──────────────────────────────────────────────────────────────────
+function dueStatusBadge(s){
+  const map={'Pending response':'<span class="badge badge-amber">Pending response</span>','Acknowledged':'<span class="badge badge-blue">Acknowledged</span>','Disputed':'<span class="badge badge-red">Disputed</span>','Partially settled':'<span class="badge badge-teal">Partially settled</span>','Fully settled':'<span class="badge badge-green">Fully settled</span>'};
+  return map[s]||'<span class="badge badge-gray">'+s+'</span>';
+}
+
+function renderDues(){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewDueModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register overdue</button>';
+  const visibleDues=DUES;
+  const totalDues=DUES.reduce(function(a,d){return a+(d.amount-d.settled);},0);
+  const pending=DUES.filter(function(d){return d.status==='Pending response';}).length;
+  const disputed=DUES.filter(function(d){return d.status==='Disputed';}).length;
+  let rows='';
+  visibleDues.forEach(function(d){
+    const outstanding=d.amount-d.settled;
+    const overdueDays=Math.max(0,daysDiff(d.dueDate));
+    const outColor=outstanding>0?'var(--red)':'var(--green)';
+    const dayColor=overdueDays>0?'var(--red)':'var(--green)';
+    const dayLabel=overdueDays>0?overdueDays+' days overdue':'On time';
+    rows+='<tr><td><span style="font-size:11px;color:var(--text3)">'+d.id+'</span><br><strong>'+d.creditor+'</strong><br><span style="font-size:11px;color:var(--text3)">owed by</span><br><strong style="color:var(--red)">'+d.debtor+'</strong></td><td style="font-size:12px">'+d.desc+'</td><td style="font-size:12px">'+fmt(d.amount)+'</td><td style="font-size:12px;color:var(--green)">'+(d.settled>0?fmt(d.settled):'—')+'</td><td style="font-size:12px;color:'+outColor+'"><strong>'+fmt(outstanding)+'</strong></td><td style="font-size:12px">'+fmtDate(d.dueDate)+'<br><span style="color:'+dayColor+';font-size:11px">'+dayLabel+'</span></td><td>'+dueStatusBadge(d.status)+'</td><td><button class="btn btn-sm" onclick="viewDueSafe(this)" data-id="'+d.id+'">View</button></td></tr>';
+  });
+  const alertHtml=(pending>0?'<div class="alert alert-amber" style="margin-bottom:16px"><strong>'+pending+' overdue(s)</strong> awaiting debtor response.</div>':'')+(disputed>0?'<div class="alert alert-red" style="margin-bottom:16px"><strong>'+disputed+' overdue(s)</strong> disputed.</div>':'');
+  document.getElementById('mainContent').innerHTML=
+    alertHtml+
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px"><div class="stat-card"><div class="stat-label">Total registered</div><div class="stat-value">'+DUES.length+'</div></div><div class="stat-card"><div class="stat-label">Total outstanding</div><div class="stat-value" style="font-size:17px;color:var(--red)">'+fmt(totalDues)+'</div></div><div class="stat-card"><div class="stat-label">Pending response</div><div class="stat-value" style="color:var(--amber)">'+pending+'</div></div></div>'+
+    '<div class="table-wrap"><table><thead><tr><th>Creditor / Debtor</th><th>Description</th><th>Amount</th><th>Settled</th><th>Outstanding</th><th>Due date</th><th>Status</th><th></th></tr></thead><tbody>'+(rows||'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No overdues registered yet</td></tr>')+'</tbody></table></div>';
+}
+
+function viewDueSafe(btn){ viewDue(btn.getAttribute('data-id')); }
+
+function viewDue(id){
+  currentModalDueId=id;
+  const d=DUES.find(function(x){return x.id===id;});
+  if(!d) return;
+  const isKeeper=currentRole==='keeper';
+  const outstanding=d.amount-d.settled;
+  const overdueDays=Math.max(0,daysDiff(d.dueDate));
+  openModal(
+    '<h3>Overdue — '+d.id+'</h3><input type="hidden" id="modalDueId" value="'+d.id+'">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+    '<div class="stat-card"><div class="stat-label">Creditor</div><div style="font-weight:600;color:var(--green);margin-top:4px">'+d.creditor+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Debtor</div><div style="font-weight:600;color:var(--red);margin-top:4px">'+d.debtor+'</div></div>'+
+    '</div>'+
+    '<div class="form-group"><label>Description</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">'+d.desc+'</p></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">'+
+    '<div class="stat-card"><div class="stat-label">Total amount</div><div style="font-weight:600">'+fmt(d.amount)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Settled so far</div><div style="font-weight:600;color:var(--green)">'+fmt(d.settled)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Outstanding</div><div style="font-weight:600;color:var(--red)">'+fmt(outstanding)+'</div></div>'+
+    '</div>'+
+    (d.debtorResponse?'<div class="form-group"><label>Debtor response</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">'+d.debtorResponse+'</p></div>':'')+
+    (d.status==='Pending response'?'<div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-bottom:16px"><p style="font-size:13px;color:var(--amber);font-weight:600;margin-bottom:10px">Debtor response required</p><textarea id="dueResponse" placeholder="Enter your response\u2026" style="margin-bottom:10px"></textarea><div style="display:flex;gap:8px"><button class="btn btn-success btn-sm" onclick="respondDue(currentModalDueId,\'Acknowledged\')">Acknowledge</button><button class="btn btn-danger btn-sm" onclick="respondDue(currentModalDueId,\'Disputed\')">Dispute</button></div></div>':'')+
+    (isKeeper&&d.status!=='Fully settled'?'<div style="background:var(--green-bg);border:1px solid var(--green-light);border-radius:var(--radius);padding:14px;margin-bottom:16px"><p style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:10px">Record settlement</p><div class="form-row"><div class="form-group"><label>Amount settled (EGP)</label><input type="number" id="dueSettleAmt" placeholder="0"></div><div class="form-group"><label>Settlement date</label><input type="date" id="dueSettleDate" value="'+today()+'"></div></div><button class="btn btn-success btn-sm" onclick="settleDue(currentModalDueId)">Record settlement</button></div>':'')+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Close</button></div>'
+  );
+}
+
+async function respondDue(id,responseType){
+  const d=DUES.find(function(x){return x.id===id;});
+  if(!d) return;
+  const response=document.getElementById('dueResponse').value.trim();
+  if(!response){showToast('Please enter your response first','error');return;}
+  d.status=responseType; d.debtorResponse=response;
+  showLoader('Saving\u2026'); await apiUpdate('Dues',d.id,d); hideLoader();
+  closeModal(); renderDues(); showToast('Response recorded');
+}
+
+async function settleDue(id){
+  const d=DUES.find(function(x){return x.id===id;});
+  if(!d) return;
+  const amt=parseFloat(document.getElementById('dueSettleAmt').value)||0;
+  const date=document.getElementById('dueSettleDate').value;
+  if(!amt){showToast('Please enter settlement amount','error');return;}
+  d.settled=Math.min(parseFloat(d.settled)+amt,parseFloat(d.amount));
+  d.settlementDate=date;
+  d.status=d.settled>=parseFloat(d.amount)?'Fully settled':'Partially settled';
+  showLoader('Saving\u2026'); await apiUpdate('Dues',d.id,d); hideLoader();
+  closeModal(); renderDues(); showToast('Settlement recorded');
+}
+
+function openNewDueModal(){
+  const coOpts=COMPANIES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  openModal('<h3>Register an overdue</h3>'+
+    '<div class="form-row"><div class="form-group"><label>Creditor</label><select id="ndCreditor">'+coOpts+'</select></div><div class="form-group"><label>Debtor</label><select id="ndDebtor">'+coOpts+'</select></div></div>'+
+    '<div class="form-group"><label>Description</label><textarea id="ndDesc" placeholder="e.g. Engineering services Q3 2023\u2026"></textarea></div>'+
+    '<div class="form-row"><div class="form-group"><label>Amount (EGP)</label><input type="number" id="ndAmount" placeholder="0"></div><div class="form-group"><label>Original due date</label><input type="date" id="ndDueDate" value="'+today()+'"></div></div>'+
+    '<div class="form-group"><label>Amount already settled (EGP)</label><input type="number" id="ndSettled" placeholder="0" value="0"></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitNewDue()">Register overdue</button></div>');
+}
+
+async function submitNewDue(){
+  const creditor=document.getElementById('ndCreditor').value;
+  const debtor=document.getElementById('ndDebtor').value;
+  const desc=document.getElementById('ndDesc').value.trim();
+  const amount=parseFloat(document.getElementById('ndAmount').value)||0;
+  const dueDate=document.getElementById('ndDueDate').value;
+  const settled=parseFloat(document.getElementById('ndSettled').value)||0;
+  if(!desc||!amount||!dueDate){showToast('Please fill all fields','error');return;}
+  if(creditor===debtor){showToast('Creditor and debtor must differ','error');return;}
+  const id='OVD-'+String(DUES.length+1).padStart(3,'0');
+  const newDue={id,creditor,debtor,desc,amount,dueDate,registeredBy:currentRole==='keeper'?'keeper':'creditor',registeredDate:today(),status:'Pending response',debtorResponse:'',settlementDate:'',settled};
+  showLoader('Saving\u2026'); await apiWrite('Dues',newDue); DUES.push(newDue); hideLoader();
+  closeModal(); renderDues(); showToast('Overdue registered');
+}
+
+// ── SUCCESS STORIES ───────────────────────────────────────────────────────
+function renderStories(){
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewStoryModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add story</button>';
+  if(STORIES.length===0){
+    document.getElementById('mainContent').innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><p style="font-size:15px;font-weight:600;margin-bottom:8px">No success stories yet</p><button class="btn btn-primary" style="margin-top:16px" onclick="openNewStoryModal()">Add first story</button></div>';
+    return;
+  }
+  const cards=STORIES.map(function(s){
+    const typeColor=s.type==='Cross-sell'?'badge-blue':s.type==='Intra-group sourcing'?'badge-teal':s.type==='New client'?'badge-green':'badge-purple';
+    return '<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><span class="badge '+typeColor+'" style="margin-bottom:6px">'+s.type+'</span><h3 style="font-size:15px;font-weight:600;margin-top:4px">'+s.title+'</h3></div><span style="font-size:11px;color:var(--text3)">'+fmtDate(s.date)+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div class="stat-card"><div class="stat-label">Company</div><div style="font-weight:600;margin-top:2px">'+s.company+'</div></div>'+(s.partnerCompany?'<div class="stat-card"><div class="stat-label">Partner</div><div style="font-weight:600;margin-top:2px">'+s.partnerCompany+'</div></div>':'')+''+(s.value>0?'<div class="stat-card"><div class="stat-label">Value</div><div style="font-weight:600;color:var(--green);margin-top:2px">'+fmt(parseFloat(s.value))+'</div></div>':'')+'</div><p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px">'+s.story+'</p>'+(s.lesson?'<div style="background:var(--blue-bg);border-left:3px solid var(--blue);padding:10px 14px;border-radius:0 var(--radius) var(--radius) 0;font-size:12px;color:var(--blue)"><strong>Key lesson:</strong> '+s.lesson+'</div>':'')+'</div>';
+  }).join('');
+  document.getElementById('mainContent').innerHTML=
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px"><div class="stat-card"><div class="stat-label">Total stories</div><div class="stat-value">'+STORIES.length+'</div></div><div class="stat-card"><div class="stat-label">Cross-sell wins</div><div class="stat-value">'+STORIES.filter(function(s){return s.type==='Cross-sell';}).length+'</div></div><div class="stat-card"><div class="stat-label">Total value</div><div class="stat-value" style="font-size:17px;color:var(--green)">'+fmt(STORIES.reduce(function(a,s){return a+(parseFloat(s.value)||0);},0))+'</div></div></div>'+cards;
+}
+
+function openNewStoryModal(){
+  const coOpts=COMPANIES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  openModal('<h3>Add success story</h3>'+
+    '<div class="form-group"><label>Story title</label><input type="text" id="nsTitle" placeholder="e.g. ARESCO wins EGP 5M contract through Asec Engineering referral"></div>'+
+    '<div class="form-row"><div class="form-group"><label>Company</label><select id="nsCompany">'+coOpts+'</select></div><div class="form-group"><label>Partner company (if any)</label><select id="nsPartner"><option value="">None</option>'+coOpts+'</select></div></div>'+
+    '<div class="form-row"><div class="form-group"><label>Type</label><select id="nsType"><option>Cross-sell</option><option>Intra-group sourcing</option><option>New client</option><option>Cost saving</option><option>Other</option></select></div><div class="form-group"><label>Date</label><input type="date" id="nsDate" value="'+today()+'"></div></div>'+
+    '<div class="form-group"><label>Value generated (EGP) — optional</label><input type="number" id="nsValue" placeholder="0"></div>'+
+    '<div class="form-group"><label>Tell the story</label><textarea id="nsStory" style="min-height:100px" placeholder="What happened? What was the outcome?"></textarea></div>'+
+    '<div class="form-group"><label>Key lesson — optional</label><input type="text" id="nsLesson" placeholder="e.g. Early involvement saved 3 weeks"></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitStory()">Share story</button></div>');
+}
+
+async function submitStory(){
+  const title=document.getElementById('nsTitle').value.trim();
+  const story=document.getElementById('nsStory').value.trim();
+  if(!title||!story){showToast('Please fill title and story','error');return;}
+  const id='STR-'+String(STORIES.length+1).padStart(3,'0');
+  const newStory={id,title,company:document.getElementById('nsCompany').value,partnerCompany:document.getElementById('nsPartner').value,type:document.getElementById('nsType').value,date:document.getElementById('nsDate').value,value:parseFloat(document.getElementById('nsValue').value)||0,story,lesson:document.getElementById('nsLesson').value.trim(),registeredDate:today()};
+  showLoader('Saving\u2026'); await apiWrite('Stories',newStory); STORIES.push(newStory); hideLoader();
+  closeModal(); renderStories(); showToast('Success story shared!');
+}
+
+// ── COMPANIES ─────────────────────────────────────────────────────────────
+function renderCompanies(){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML='';
+  let rows='';
+  COMPANIES.forEach(function(c){
+    const ct=getContact(c);
+    const sent=REFERRALS.filter(function(r){return r.referring===c;}).length;
+    const received=REFERRALS.filter(function(r){return r.receiving===c;}).length;
+    const srcCount=SOURCING.filter(function(s){return s.buyer===c||s.provider===c;}).length;
+    const nameTd=ct.name||'<span style="color:var(--text3);font-style:italic">Not set</span>';
+    const emailTd=ct.email?('<a href="mailto:'+ct.email+'">'+ct.email+'</a>'):'<span style="color:var(--text3);font-style:italic">Not set</span>';
+    const phoneTd=ct.phone||'<span style="color:var(--text3);font-style:italic">Not set</span>';
+    let btns='';
+    if(isKeeper) btns+='<button class="btn btn-sm" onclick="editContactSafe(this)" data-co="'+encodeURIComponent(c)+'">Edit contact</button> ';
+    if(ct.email) btns+='<a href="mailto:'+ct.email+'" class="btn btn-sm" style="text-decoration:none">&#9993;</a> ';
+    if(ct.phone){var wu=waLink(ct.phone,'Hello from KEEP platform.');btns+='<a href="'+wu+'" target="_blank" class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border-color:var(--green-light);text-decoration:none">WA</a>';}
+    rows+='<tr><td><strong>'+c+'</strong></td><td>'+nameTd+'</td><td>'+emailTd+'</td><td>'+phoneTd+'</td><td style="text-align:center">'+sent+'</td><td style="text-align:center">'+received+'</td><td style="text-align:center">'+srcCount+'</td><td><div style="display:flex;gap:5px;align-items:center">'+btns+'</div></td></tr>';
+  });
+  const missing=COMPANIES.filter(function(c){const ct=getContact(c);return !ct.email&&!ct.phone;}).length;
+  let alertHtml='';
+  if(missing>0&&isKeeper) alertHtml='<div class="alert alert-amber" style="margin-bottom:16px"><strong>'+missing+' compan'+(missing===1?'y':'ies')+'</strong> have no contact set.</div>';
+  document.getElementById('mainContent').innerHTML=alertHtml+'<div class="table-wrap"><table><thead><tr><th>Company</th><th>Contact person</th><th>Email</th><th>Phone</th><th style="text-align:center">Refs sent</th><th style="text-align:center">Refs received</th><th style="text-align:center">Sourcing</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function editContactSafe(btn){ editContact(decodeURIComponent(btn.getAttribute('data-co'))); }
+
+function editContact(co){
+  const ct=getContact(co);
+  openModal('<h3>Edit contact — '+co+'</h3>'+
+    '<input type="hidden" id="ecCompanyId" value="'+co+'">'+
+    '<div class="form-group"><label>Contact person name</label><input type="text" id="ecName" value="'+ct.name+'" placeholder="e.g. Ahmed Hassan"></div>'+
+    '<div class="form-group"><label>Email address</label><input type="email" id="ecEmail" value="'+ct.email+'" placeholder="e.g. ahmed@company.com"></div>'+
+    '<div class="form-group"><label>WhatsApp phone (include country code)</label><input type="tel" id="ecPhone" value="'+ct.phone+'" placeholder="+201001234567"></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveContactModal()">Save contact</button></div>');
+}
+
+function saveContactModal(){ saveContact(document.getElementById('ecCompanyId').value); }
+
+async function saveContact(co){
+  const data={company:co,name:document.getElementById('ecName').value.trim(),email:document.getElementById('ecEmail').value.trim(),phone:document.getElementById('ecPhone').value.trim()};
+  showLoader('Saving\u2026'); await apiUpdate('Contacts',co,data); hideLoader();
+  const idx=CONTACTS_RAW.findIndex(function(r){return r.company===co;});
+  if(idx>=0) CONTACTS_RAW[idx]=data; else CONTACTS_RAW.push(data);
+  closeModal(); renderCompanies(); showToast('Contact saved for '+co);
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────────────
+function renderReports(){
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-sm" onclick="exportXLSX()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export to Excel</button>';
+  const totalSec=REFERRALS.filter(function(r){return r.status==='Secured'||r.status==='Signed'||r.status==='Completed';}).reduce(function(a,r){return a+r.secured;},0);
+  const totalColl=REFERRALS.filter(function(r){return r.collected>0;}).reduce(function(a,r){return a+r.collected;},0);
+  const totalInc=Math.round(totalColl*0.005);
+  const totalPaid=REFERRALS.reduce(function(a,r){return a+r.incentivePaid;},0);
+  document.getElementById('mainContent').innerHTML=
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">'+
+    '<div class="stat-card"><div class="stat-label">Total referrals</div><div class="stat-value">'+REFERRALS.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Cash collected</div><div class="stat-value" style="font-size:17px">'+fmt(totalColl)+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Incentives paid</div><div class="stat-value" style="font-size:17px">'+fmt(totalPaid)+'</div></div>'+
+    '</div>'+
+    '<div class="card"><h3 style="font-size:14px;font-weight:600;margin-bottom:6px">Export data</h3>'+
+    '<p style="font-size:13px;color:var(--text2);margin-bottom:16px">Click Export to Excel above to download all data as a multi-sheet workbook.</p>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">'+
+    '<div class="stat-card" style="flex:1;min-width:120px"><div class="stat-label">Referrals</div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+REFERRALS.length+' records</div></div>'+
+    '<div class="stat-card" style="flex:1;min-width:120px"><div class="stat-label">Overdues</div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+DUES.length+' records</div></div>'+
+    '<div class="stat-card" style="flex:1;min-width:120px"><div class="stat-label">Sourcing</div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+SOURCING.length+' records</div></div>'+
+    '<div class="stat-card" style="flex:1;min-width:120px"><div class="stat-label">Customers</div><div style="font-size:13px;color:var(--text2);margin-top:4px">'+CUSTOMERS.length+' records</div></div>'+
+    '</div></div>';
+}
+
+function exportXLSX(){
+  const wb=XLSX.utils.book_new();
+  const refData=REFERRALS.map(function(r){return {'ID':r.id,'Date':r.date,'Referring':r.referring,'Receiving':r.receiving,'Client':r.client,'Description':r.desc,'Value':r.value,'Status':r.status,'Secured':r.secured,'Collected':r.collected,'Incentive Paid':r.incentivePaid,'Payment Due':r.paymentDue};});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(refData),'Referrals');
+  const duesData=DUES.map(function(d){return {'ID':d.id,'Creditor':d.creditor,'Debtor':d.debtor,'Description':d.desc,'Amount':d.amount,'Settled':d.settled,'Outstanding':d.amount-d.settled,'Due Date':d.dueDate,'Status':d.status};});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Overdues');
+  const srcData=SOURCING.map(function(s){return {'ID':s.id,'Buyer':s.buyer,'Provider':s.provider,'Service':s.service,'Value':s.value,'Status':s.status};});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(srcData),'Sourcing');
+  const custData=CUSTOMERS.map(function(c){return {'ID':c.id,'Customer':c.customerName,'Sector':c.sector,'Country':c.country,'Registered By':c.registeredBy,'Payment':c.ratingPayment,'Communication':c.ratingComm,'Professionalism':c.ratingProf,'Growth':c.ratingGrowth,'Overall':c.ratingOverall};});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(custData),'Customers');
+  XLSX.writeFile(wb,'KEEP_Report_'+today()+'.xlsx');
+  showToast('Excel report downloaded');
+}
+
+
 // ── SOURCING ──────────────────────────────────────────────────────────────
 function renderSourcing(activeTab){
   activeTab = activeTab || 'requests';
@@ -1173,6 +1412,133 @@ async function submitROFM(){
 }
 
 
+
+
+// ── EXHIBITIONS & FORUMS ─────────────────────────────────────────────────
+function renderExhibitions(){
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewExhibitionModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register event</button>';
+  if(EXHIBITIONS.length===0){
+    document.getElementById('mainContent').innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><p style="font-size:15px;font-weight:600;margin-bottom:8px">No events registered yet</p><button class="btn btn-primary" style="margin-top:16px" onclick="openNewExhibitionModal()">Register first event</button></div>';
+    return;
+  }
+  const uniqueEvents=[...new Set(EXHIBITIONS.map(function(e){return e.eventName;}))];
+  const coordOpps=uniqueEvents.filter(function(name){return EXHIBITIONS.filter(function(e){return e.eventName===name;}).length>1;});
+  let cards='';
+  uniqueEvents.forEach(function(eventName){
+    const entries=EXHIBITIONS.filter(function(e){return e.eventName===eventName;});
+    const ev=entries[0];
+    const companies=[...new Set(entries.map(function(e){return e.company;}))];
+    const daysToEvent=Math.ceil((new Date(ev.eventDate)-new Date())/(1000*60*60*24));
+    const upcoming=daysToEvent>0;
+    const companyBadges=companies.map(function(c){return '<span class="badge badge-blue" style="margin-right:4px">'+c+'</span>';}).join('');
+    const coordBadge=companies.length>1?'<span class="badge" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green-light)">'+companies.length+' companies — coordinate!</span>':'<span class="badge badge-gray">1 company</span>';
+    cards+='<div class="card" style="margin-bottom:14px">';
+    cards+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px"><div><span class="badge '+(ev.type==='Exhibition'?'badge-purple':ev.type==='Forum'?'badge-blue':ev.type==='Conference'?'badge-teal':'badge-amber')+'" style="margin-bottom:6px">'+ev.type+'</span><h3 style="font-size:15px;font-weight:600;margin-top:4px">'+eventName+'</h3></div><div style="text-align:right"><span style="font-size:12px;color:var(--text3)">'+ev.eventDate+'</span><br><span style="font-size:11px;color:'+(upcoming?'var(--green)':'var(--text3)')+'">'+( upcoming?daysToEvent+' days away':'Past event')+'</span></div></div>';
+    cards+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div class="stat-card"><div class="stat-label">Location</div><div style="font-size:13px;margin-top:2px">'+ev.location+'</div></div><div class="stat-card"><div class="stat-label">Interested companies</div><div style="margin-top:4px">'+coordBadge+'</div></div></div>';
+    cards+='<div style="margin-bottom:12px">'+companyBadges+'</div>';
+    cards+='<div style="margin-top:10px"><button class="btn btn-sm" onclick="openNewExhibitionModal(\''+encodeURIComponent(eventName)+'\',\''+ev.eventDate+'\',\''+encodeURIComponent(ev.location)+'\',\''+ev.type+'\')">+ My company is also interested</button></div>';
+    cards+='</div>';
+  });
+  document.getElementById('mainContent').innerHTML=
+    (coordOpps.length>0?'<div class="alert alert-green" style="margin-bottom:16px"><strong>'+coordOpps.length+' event(s)</strong> have multiple companies interested — coordination opportunity!</div>':'')+
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px"><div class="stat-card"><div class="stat-label">Total events</div><div class="stat-value">'+uniqueEvents.length+'</div></div><div class="stat-card"><div class="stat-label">Upcoming</div><div class="stat-value">'+uniqueEvents.filter(function(n){var e=EXHIBITIONS.find(function(x){return x.eventName===n;});return new Date(e.eventDate)>new Date();}).length+'</div></div><div class="stat-card"><div class="stat-label">Coordination opportunities</div><div class="stat-value" style="color:var(--green)">'+coordOpps.length+'</div></div></div>'+
+    cards;
+}
+
+function openNewExhibitionModal(prefNameEnc,prefDate,prefLocEnc,prefType){
+  const prefName=prefNameEnc?decodeURIComponent(prefNameEnc):'';
+  const prefLoc=prefLocEnc?decodeURIComponent(prefLocEnc):'';
+  const coOpts=COMPANIES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  openModal('<h3>Register event interest</h3>'+
+    '<div class="form-group"><label>Your company</label><select id="exCompany">'+coOpts+'</select></div>'+
+    '<div class="form-group"><label>Event name</label><input type="text" id="exName" value="'+prefName+'" placeholder="e.g. Cairo Mining Conference 2025"></div>'+
+    '<div class="form-row"><div class="form-group"><label>Event type</label><select id="exType"><option'+(prefType==='Exhibition'?' selected':'')+'>Exhibition</option><option'+(prefType==='Forum'?' selected':'')+'>Forum</option><option'+(prefType==='Conference'?' selected':'')+'>Conference</option><option'+(prefType==='Trade show'?' selected':'')+'>Trade show</option></select></div><div class="form-group"><label>Date</label><input type="date" id="exDate" value="'+(prefDate||today())+'"></div></div>'+
+    '<div class="form-group"><label>Location</label><input type="text" id="exLocation" value="'+prefLoc+'" placeholder="e.g. Cairo International Convention Center"></div>'+
+    '<div class="form-group"><label>Notes</label><textarea id="exNotes" placeholder="What you plan to present or discuss\u2026"></textarea></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitExhibition()">Register interest</button></div>');
+}
+
+async function submitExhibition(){
+  const company=document.getElementById('exCompany').value;
+  const eventName=document.getElementById('exName').value.trim();
+  const type=document.getElementById('exType').value;
+  const eventDate=document.getElementById('exDate').value;
+  const location=document.getElementById('exLocation').value.trim();
+  const notes=document.getElementById('exNotes').value.trim();
+  if(!eventName||!eventDate||!location){showToast('Please fill all required fields','error');return;}
+  const id='EXH-'+String(EXHIBITIONS.length+1).padStart(3,'0');
+  const newEx={id,company,eventName,type,eventDate,location,notes,coordination:'Individual',registeredDate:today()};
+  showLoader('Saving\u2026'); await apiWrite('Exhibitions',newEx); EXHIBITIONS.push(newEx); hideLoader();
+  closeModal(); renderExhibitions(); showToast('Event interest registered');
+}
+
+// ── CUSTOMER DATABASE ─────────────────────────────────────────────────────
+function renderCustomers(){
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewCustomerModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add customer</button>';
+  if(CUSTOMERS.length===0){
+    document.getElementById('mainContent').innerHTML='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p style="font-size:15px;font-weight:600;margin-bottom:8px">No customers yet</p><button class="btn btn-primary" style="margin-top:16px" onclick="openNewCustomerModal()">Add first customer</button></div>';
+    return;
+  }
+  function starRating(val){var v=parseFloat(val)||0;var color=v>=8?'var(--green)':v>=5?'var(--amber)':'var(--red)';return '<span style="font-weight:600;color:'+color+'">'+v.toFixed(1)+'</span><span style="color:var(--text3);font-size:11px">/10</span>';}
+  let rows='';
+  CUSTOMERS.forEach(function(c){
+    const avg=((parseFloat(c.ratingPayment)||0)+(parseFloat(c.ratingComm)||0)+(parseFloat(c.ratingProf)||0)+(parseFloat(c.ratingGrowth)||0)+(parseFloat(c.ratingOverall)||0))/5;
+    const avgColor=avg>=8?'var(--green)':avg>=5?'var(--amber)':'var(--red)';
+    rows+='<tr><td><strong>'+c.customerName+'</strong><br><span style="font-size:11px;color:var(--text3)">'+c.sector+'</span></td><td style="font-size:12px">'+c.country+'</td><td style="font-size:12px">'+c.registeredBy+'</td><td>'+starRating(c.ratingPayment)+'</td><td>'+starRating(c.ratingComm)+'</td><td>'+starRating(c.ratingProf)+'</td><td>'+starRating(c.ratingGrowth)+'</td><td>'+starRating(c.ratingOverall)+'</td><td><span style="font-weight:700;font-size:14px;color:'+avgColor+'">'+avg.toFixed(1)+'</span><span style="font-size:10px;color:var(--text3)">/10</span></td><td><button class="btn btn-sm" onclick="viewCustomerSafe(this)" data-id="'+c.id+'">View</button></td></tr>';
+  });
+  const avgOverall=CUSTOMERS.reduce(function(a,c){return a+((parseFloat(c.ratingPayment)||0)+(parseFloat(c.ratingComm)||0)+(parseFloat(c.ratingProf)||0)+(parseFloat(c.ratingGrowth)||0)+(parseFloat(c.ratingOverall)||0))/5;},0)/Math.max(CUSTOMERS.length,1);
+  document.getElementById('mainContent').innerHTML=
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px"><div class="stat-card"><div class="stat-label">Total customers</div><div class="stat-value">'+CUSTOMERS.length+'</div></div><div class="stat-card"><div class="stat-label">Avg score</div><div class="stat-value" style="color:'+(avgOverall>=8?'var(--green)':avgOverall>=5?'var(--amber)':'var(--red)')+'">'+avgOverall.toFixed(1)+'/10</div></div><div class="stat-card"><div class="stat-label">High-rated (8+)</div><div class="stat-value" style="color:var(--green)">'+CUSTOMERS.filter(function(c){return ((parseFloat(c.ratingPayment)||0)+(parseFloat(c.ratingComm)||0)+(parseFloat(c.ratingProf)||0)+(parseFloat(c.ratingGrowth)||0)+(parseFloat(c.ratingOverall)||0))/5>=8;}).length+'</div></div></div>'+
+    '<div class="search-bar" style="margin-bottom:18px"><input type="text" placeholder="Search customers\u2026" oninput="filterCustomers(this.value)"></div>'+
+    '<div class="table-wrap" id="customerTable"><table><thead><tr><th>Customer</th><th>Country</th><th>Registered by</th><th>Payment</th><th>Communication</th><th>Professionalism</th><th>Growth</th><th>Overall</th><th>Avg</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function viewCustomerSafe(btn){ viewCustomer(btn.getAttribute('data-id')); }
+function filterCustomers(q){ document.querySelectorAll('#customerTable tbody tr').forEach(function(tr){tr.style.display=tr.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';}); }
+
+function viewCustomer(id){
+  const c=CUSTOMERS.find(function(x){return x.id===id;});
+  if(!c) return;
+  function ratingBar(label,val){var v=parseFloat(val)||0;var color=v>=8?'var(--green)':v>=5?'var(--amber)':'var(--red)';return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:var(--text2)">'+label+'</span><span style="font-weight:600;color:'+color+'">'+v+'/10</span></div><div class="progress"><div class="progress-fill" style="width:'+v*10+'%;background:'+color+'"></div></div></div>';}
+  const avg=((parseFloat(c.ratingPayment)||0)+(parseFloat(c.ratingComm)||0)+(parseFloat(c.ratingProf)||0)+(parseFloat(c.ratingGrowth)||0)+(parseFloat(c.ratingOverall)||0))/5;
+  const avgColor=avg>=8?'var(--green)':avg>=5?'var(--amber)':'var(--red)';
+  openModal(
+    '<h3>'+c.customerName+'</h3>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px"><div class="stat-card"><div class="stat-label">Sector</div><div style="font-size:13px;margin-top:2px">'+c.sector+'</div></div><div class="stat-card"><div class="stat-label">Country</div><div style="font-size:13px;margin-top:2px">'+c.country+'</div></div><div class="stat-card"><div class="stat-label">Average score</div><div style="font-size:20px;font-weight:700;color:'+avgColor+'">'+avg.toFixed(1)+'/10</div></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">'+
+    '<div><h4 style="font-size:13px;font-weight:600;margin-bottom:12px">Ratings</h4>'+ratingBar('Payment reliability',c.ratingPayment)+ratingBar('Communication',c.ratingComm)+ratingBar('Professionalism',c.ratingProf)+ratingBar('Growth potential',c.ratingGrowth)+ratingBar('Overall experience',c.ratingOverall)+'</div>'+
+    '<div><h4 style="font-size:13px;font-weight:600;margin-bottom:12px">Contact</h4>'+
+    '<div style="font-size:13px;color:var(--text2)">'+(c.contactName?'<div style="margin-bottom:6px"><strong>'+c.contactName+'</strong></div>':'')+(c.contactTitle?'<div style="margin-bottom:6px;color:var(--text3)">'+c.contactTitle+'</div>':'')+(c.contactEmail?'<div style="margin-bottom:6px"><a href="mailto:'+c.contactEmail+'">'+c.contactEmail+'</a></div>':'')+(c.contactPhone?'<div style="margin-bottom:6px">'+c.contactPhone+'</div>':'')+'</div>'+
+    (c.notes?'<div style="margin-top:12px"><h4 style="font-size:13px;font-weight:600;margin-bottom:6px">Notes</h4><p style="font-size:12px;color:var(--text2);background:var(--surface2);padding:8px 10px;border-radius:var(--radius)">'+c.notes+'</p></div>':'')+
+    '</div></div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:16px">Registered by <strong>'+c.registeredBy+'</strong> on '+c.registeredDate+'</div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Close</button></div>'
+  );
+}
+
+function openNewCustomerModal(){
+  const coOpts=COMPANIES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  openModal('<h3>Add customer to database</h3>'+
+    '<div class="form-row"><div class="form-group"><label>Customer name</label><input type="text" id="cName" placeholder="e.g. Lafarge Egypt"></div><div class="form-group"><label>Sector</label><select id="cSector"><option>Cement</option><option>Steel</option><option>Energy</option><option>Construction</option><option>Mining</option><option>Agriculture</option><option>Food & Beverage</option><option>Government</option><option>Other</option></select></div></div>'+
+    '<div class="form-row"><div class="form-group"><label>Country</label><input type="text" id="cCountry" placeholder="e.g. Egypt"></div><div class="form-group"><label>Registered by</label><select id="cRegBy">'+coOpts+'</select></div></div>'+
+    '<h4 style="font-size:13px;font-weight:600;margin:14px 0 10px">Contact person</h4>'+
+    '<div class="form-row"><div class="form-group"><label>Name</label><input type="text" id="cContactName" placeholder="Contact name"></div><div class="form-group"><label>Title</label><input type="text" id="cContactTitle" placeholder="Job title"></div></div>'+
+    '<div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="cContactEmail" placeholder="email@company.com"></div><div class="form-group"><label>Phone</label><input type="tel" id="cContactPhone" placeholder="+20\u2026"></div></div>'+
+    '<h4 style="font-size:13px;font-weight:600;margin:14px 0 10px">Ratings (1\u201310)</h4>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="form-group"><label>Payment reliability</label><input type="number" id="cRatePay" min="1" max="10" placeholder="1\u201310"></div><div class="form-group"><label>Communication</label><input type="number" id="cRateComm" min="1" max="10" placeholder="1\u201310"></div><div class="form-group"><label>Professionalism</label><input type="number" id="cRateProf" min="1" max="10" placeholder="1\u201310"></div><div class="form-group"><label>Growth potential</label><input type="number" id="cRateGrowth" min="1" max="10" placeholder="1\u201310"></div><div class="form-group"><label>Overall experience</label><input type="number" id="cRateOverall" min="1" max="10" placeholder="1\u201310"></div></div>'+
+    '<div class="form-group" style="margin-top:10px"><label>Notes</label><textarea id="cNotes" placeholder="Any important notes\u2026"></textarea></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitCustomer()">Add customer</button></div>');
+}
+
+async function submitCustomer(){
+  const name=document.getElementById('cName').value.trim();
+  const country=document.getElementById('cCountry').value.trim();
+  if(!name||!country){showToast('Please fill required fields','error');return;}
+  const id='CST-'+String(CUSTOMERS.length+1).padStart(3,'0');
+  const newC={id,customerName:name,sector:document.getElementById('cSector').value,country,registeredBy:document.getElementById('cRegBy').value,registeredDate:today(),contactName:document.getElementById('cContactName').value.trim(),contactTitle:document.getElementById('cContactTitle').value.trim(),contactEmail:document.getElementById('cContactEmail').value.trim(),contactPhone:document.getElementById('cContactPhone').value.trim(),ratingPayment:parseFloat(document.getElementById('cRatePay').value)||0,ratingComm:parseFloat(document.getElementById('cRateComm').value)||0,ratingProf:parseFloat(document.getElementById('cRateProf').value)||0,ratingGrowth:parseFloat(document.getElementById('cRateGrowth').value)||0,ratingOverall:parseFloat(document.getElementById('cRateOverall').value)||0,notes:document.getElementById('cNotes').value.trim()};
+  showLoader('Saving\u2026'); await apiWrite('Customers',newC); CUSTOMERS.push(newC); hideLoader();
+  closeModal(); renderCustomers(); showToast('Customer added: '+name);
+}
 
 
 // ── INIT ──────────────────────────────────────────────────────────────────
