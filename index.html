@@ -191,6 +191,7 @@ tr:hover td{background:#fafaf8}
     <button class="nav-item" onclick="showPage('sourcing')" id="nav-sourcing">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
       Intra-group sourcing
+      <span class="notif-dot" id="dot-rofm" style="display:none"></span>
     </button>
     <button class="nav-item" onclick="showPage('dues')" id="nav-dues">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -200,6 +201,14 @@ tr:hover td{background:#fafaf8}
     <button class="nav-item" onclick="showPage('stories')" id="nav-stories">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
       Success stories
+    </button>
+    <button class="nav-item" onclick="showPage('exhibitions')" id="nav-exhibitions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M7 8h10M7 12h6"/></svg>
+      Exhibitions & forums
+    </button>
+    <button class="nav-item" onclick="showPage('customers')" id="nav-customers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Customer database
     </button>
     <div class="nav-section">Admin</div>
     <button class="nav-item" onclick="showPage('companies')">
@@ -459,8 +468,8 @@ function changeRole(r){
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────
-const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,sourcing:renderSourcing,dues:renderDues,stories:renderStories,companies:renderCompanies,reports:renderReports};
-const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',sourcing:'Intra-group sourcing',dues:'Group overdue register',stories:'Success stories',companies:'Group companies',reports:'Reports & export'};
+const pages={dashboard:renderDashboard,referrals:renderReferrals,approvals:renderApprovals,payments:renderPayments,sourcing:renderSourcing,dues:renderDues,stories:renderStories,exhibitions:renderExhibitions,customers:renderCustomers,companies:renderCompanies,reports:renderReports};
+const titles={dashboard:'Dashboard',referrals:'Referral register',approvals:'Approval queue',payments:'Incentive payments',sourcing:'Intra-group sourcing',dues:'Group overdue register',stories:'Success stories',exhibitions:'Exhibitions & forums',customers:'Customer database',companies:'Group companies',reports:'Reports & export'};
 
 function showPage(p){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -478,6 +487,8 @@ function updateNotifDots(){
   document.getElementById('dot-payments').style.display=overdue>0?'inline-block':'none';
   const pendingDues=DUES.filter(d=>d.status==='Pending response').length;
   if(document.getElementById('dot-dues')) document.getElementById('dot-dues').style.display=pendingDues>0?'inline-block':'none';
+  const pendingRofm=ROFM.filter(function(r){return r.status==='Pending BD approval';}).length;
+  if(document.getElementById('dot-rofm')) document.getElementById('dot-rofm').style.display=pendingRofm>0?'inline-block':'none';
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────
@@ -936,615 +947,271 @@ function renderPayments(){
 
 
 // ── SOURCING ──────────────────────────────────────────────────────────────
-function renderSourcing(){
-  const canAdd=currentRole!=='receiving'||true;
-  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewSourcingModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New sourcing request</button>`;
-
-  const rows=SOURCING.map(s=>{
-    const overdue=s.status==='Pending response'&&daysDiff(s.responseDeadline)>0;
-    const statusLabel=overdue?'Overdue response':s.status;
-    return `<tr>
-      <td><strong>${s.id}</strong><br><span style="font-size:11px;color:var(--text3)">${fmtDate(s.date)}</span></td>
-      <td>${s.buyer}</td>
-      <td>${s.provider}</td>
-      <td>${s.service}</td>
-      <td>${fmt(s.value)}</td>
-      <td>${fmtDate(s.responseDeadline)}</td>
-      <td>${getStatusBadge(statusLabel)}</td>
-      <td>${currentRole==='keeper'&&s.status!=='Completed'?`<button class="btn btn-sm" onclick="completeSourcingSafe(this)" data-id="${s.id}">Mark complete</button>`:''}</td>
-    </tr>`;
-  }).join('');
-
-  const completed=SOURCING.filter(s=>s.status==='Completed').length;
-  const internalRatio=Math.round(completed/SOURCING.length*100);
-
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-value">${SOURCING.length}</div></div>
-      <div class="stat-card"><div class="stat-label">Completed intra-group</div><div class="stat-value">${completed}</div></div>
-      <div class="stat-card"><div class="stat-label">Intra-group ratio</div><div class="stat-value">${internalRatio}%</div><div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:${internalRatio}%"></div></div></div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>ID</th><th>Buyer</th><th>Provider</th><th>Service</th><th>Value</th><th>Response deadline</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function completeSourcing(id){
-  const s=SOURCING.find(x=>x.id===id);
-  if(s){ s.status='Completed'; showLoader('Saving…'); await apiUpdate('Sourcing', s.id, s); hideLoader(); }
-  renderSourcing(); showToast('Sourcing request marked complete');
-}
-
-function openNewSourcingModal(){
-  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
-  openModal(`
-    <h3>New intra-group sourcing request</h3>
-    <div class="form-row">
-      <div class="form-group"><label>Buyer company</label><select id="nsBuyer">${coOpts}</select></div>
-      <div class="form-group"><label>Provider company (internal)</label><select id="nsProvider">${coOpts}</select></div>
-    </div>
-    <div class="form-group"><label>Service / product required</label><textarea id="nsService" placeholder="Describe what is being sourced…"></textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label>Estimated value (EGP)</label><input type="number" id="nsValue" placeholder="0"></div>
-      <div class="form-group"><label>Response deadline</label><input type="date" id="nsDue" value="${new Date(Date.now()+7*864e5).toISOString().split('T')[0]}"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitSourcing()">Submit request</button>
-    </div>
-  `);
-}
-
-async function submitSourcing(){
-  const buyer=document.getElementById('nsBuyer').value;
-  const provider=document.getElementById('nsProvider').value;
-  const service=document.getElementById('nsService').value;
-  const value=parseFloat(document.getElementById('nsValue').value)||0;
-  const due=document.getElementById('nsDue').value;
-  if(!service||!value){ showToast('Please fill all fields','error'); return; }
-  if(buyer===provider){ showToast('Buyer and provider must differ','error'); return; }
-  const id=`SRC-${String(SOURCING.length+1).padStart(3,'0')}`;
-  const newSrc={id,date:today(),buyer,provider,service,value:parseFloat(value),status:'Pending response',responseDeadline:due,externalUsed:false};
-  showLoader('Saving sourcing request…');
-  await apiWrite('Sourcing', newSrc);
-  SOURCING.push(newSrc);
-  hideLoader();
-  const subject=`KEEP — New Sourcing Request: ${id}`;
-  const msg=`Dear Contact,\n\nA new intra-group sourcing request has been submitted.\n\nRequest ID: ${id}\nBuyer: ${buyer}\nProvider: ${provider}\nService required: ${service}\nEstimated value: EGP ${Number(value).toLocaleString()}\nResponse required by: ${due}\n\nThe provider company should respond within the deadline.\n\nAccess the Framework tool here:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
-  closeModal();
-  openModal(`<h3>Sourcing Request Submitted — ${id}</h3>
-    <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Sourcing request submitted. Notify the companies below.</div>
-    ${notifyPanel([buyer,provider],subject,msg)}
-    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderSourcing()">Done</button></div>`);
-  showToast('Sourcing request submitted');
-}
-
-// ── DUES REGISTER ────────────────────────────────────────────────────────
-function dueStatusBadge(s){
-  const map={
-    'Pending response':'<span class="badge badge-amber">Pending response</span>',
-    'Acknowledged':'<span class="badge badge-blue">Acknowledged</span>',
-    'Disputed':'<span class="badge badge-red">Disputed</span>',
-    'Partially settled':'<span class="badge badge-teal">Partially settled</span>',
-    'Fully settled':'<span class="badge badge-green">Fully settled</span>',
-  };
-  return map[s]||`<span class="badge badge-gray">${s}</span>`;
-}
-
-function renderDues(){
+function renderSourcing(activeTab){
+  activeTab = activeTab || 'requests';
   const isKeeper=currentRole==='keeper';
-  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewDueModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register overdue</button>`;
+  const pendingRofm=ROFM.filter(function(r){return r.status==='Pending BD approval';}).length;
 
-  // Filter based on role
-  const visibleDues = isKeeper ? DUES : DUES.filter(d => {
-    // Companies only see dues where they are creditor or debtor
-    // Since we don't have a logged-in company, show all for now with role note
-    return true;
-  });
+  const tabHtml='<div class="tabs" style="margin-bottom:20px">'+
+    '<button class="tab'+(activeTab==="requests"?' active':'')+'" onclick="renderSourcing(&quot;requests&quot;)">Sourcing requests</button>'+
+    '<button class="tab'+(activeTab==="rofm"?' active':'')+'" onclick="renderSourcing(&quot;rofm&quot;)">Right of first match'+(pendingRofm>0?' <span style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px">'+pendingRofm+'</span>':'')+'</button>'+
+    '</div>';
 
-  const totalDues=DUES.reduce((a,d)=>a+(d.amount-d.settled),0);
-  const totalOverdue=DUES.filter(d=>d.status!=='Fully settled'&&daysDiff(d.dueDate)>0).reduce((a,d)=>a+(d.amount-d.settled),0);
-  const totalFines=DUES.filter(d=>d.status!=='Fully settled').reduce((a,d)=>{
-    const out=d.amount-d.settled;
-    return a+(daysDiff(d.dueDate)>0?calcFine(out,d.dueDate):0);
-  },0);
-  const pending=DUES.filter(d=>d.status==='Pending response').length;
-  const disputed=DUES.filter(d=>d.status==='Disputed').length;
-
-  const rows=visibleDues.map(d=>{
-    const outstanding=d.amount-d.settled;
-    const overdueDays=Math.max(0,daysDiff(d.dueDate));
-    const fine=d.status!=='Fully settled'&&overdueDays>0?calcFine(outstanding,d.dueDate):0;
-    return `<tr>
-      <td><span style="font-size:11px;color:var(--text3)">${d.id}</span><br><strong>${d.creditor}</strong><br><span style="font-size:11px;color:var(--text3)">owed by</span><br><strong style="color:var(--red)">${d.debtor}</strong></td>
-      <td style="font-size:12px">${d.desc}</td>
-      <td style="font-size:12px">${fmt(d.amount)}</td>
-      <td style="font-size:12px;color:var(--green)">${d.settled>0?fmt(d.settled):'—'}</td>
-      <td style="font-size:12px;color:${outstanding>0?'var(--red)':'var(--green)'}"><strong>${fmt(outstanding)}</strong></td>
-      <td style="font-size:12px">${fmtDate(d.dueDate)}<br><span style="color:${overdueDays>0?'var(--red)':'var(--green)'}; font-size:11px">${overdueDays>0?overdueDays+' days overdue':'On time'}</span></td>
-      <td>${dueStatusBadge(d.status)}</td>
-      <td><button class="btn btn-sm" onclick="viewDueSafe(this)" data-id="${d.id}">View</button></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('mainContent').innerHTML=`
-    ${pending>0?`<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>${pending} overdue(s)</strong> are awaiting a response from the debtor company.</div></div>`:''}
-    ${disputed>0?`<div class="alert alert-red" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><div><strong>${disputed} due(s)</strong> are disputed and require resolution.</div></div>`:''}
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">Total registered dues</div><div class="stat-value">${DUES.length}</div></div>
-      <div class="stat-card"><div class="stat-label">Total outstanding</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalDues)}</div></div>
-      <div class="stat-card"><div class="stat-label">Total overdue amount</div><div class="stat-value" style="font-size:17px;color:var(--red)">${fmt(totalOverdue)}</div></div>
-
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Creditor / Debtor</th><th>Description</th><th>Amount</th><th>Settled</th><th>Outstanding</th><th>Due date</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rows||'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No overdues registered yet</td></tr>'}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-function viewDue(id){
-  currentModalDueId=id;
-  const d=DUES.find(x=>x.id===id);
-  if(!d) return;
-  const isKeeper=currentRole==='keeper';
-  const isDebtor=currentRole==='receiving'; // debtor company view
-  const outstanding=d.amount-d.settled;
-  const overdueDays=Math.max(0,daysDiff(d.dueDate));
-  const fine=d.status!=='Fully settled'&&overdueDays>0?calcFine(outstanding,d.dueDate):0;
-
-  openModal(`
-    <h3>Overdue — ${d.id}</h3>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">Creditor (owed money)</div><div style="font-weight:600;color:var(--green);margin-top:4px">${d.creditor}</div></div>
-      <div class="stat-card"><div class="stat-label">Debtor (owes money)</div><div style="font-weight:600;color:var(--red);margin-top:4px">${d.debtor}</div></div>
-    </div>
-    <div class="form-group"><label>Description</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">${d.desc}</p></div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">Total amount</div><div style="font-weight:600">${fmt(d.amount)}</div></div>
-      <div class="stat-card"><div class="stat-label">Settled so far</div><div style="font-weight:600;color:var(--green)">${fmt(d.settled)}</div></div>
-      <div class="stat-card"><div class="stat-label">Outstanding</div><div style="font-weight:600;color:var(--red)">${fmt(outstanding)}</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-      <div class="stat-card"><div class="stat-label">Due date</div><div style="font-weight:600">${fmtDate(d.dueDate)}</div><div style="font-size:11px;color:${overdueDays>0?'var(--red)':'var(--green)'};margin-top:2px">${overdueDays>0?overdueDays+' days overdue':'Not yet overdue'}</div></div>
-
-    </div>
-    <div style="margin-bottom:16px">
-      <label>Status</label>
-      <div style="margin-top:4px">${dueStatusBadge(d.status)}</div>
-    </div>
-    ${d.debtorResponse?`
-    <div class="form-group">
-      <label>Debtor response</label>
-      <p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">${d.debtorResponse}</p>
-    </div>`:''}
-    ${d.status==='Pending response'?`
-    <div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-bottom:16px">
-      <p style="font-size:13px;color:var(--amber);font-weight:600;margin-bottom:10px">Debtor response required</p>
-      <textarea id="dueResponse" placeholder="Enter your response — acknowledge, raise a concern, or propose a payment plan…" style="margin-bottom:10px"></textarea>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-success btn-sm" onclick="respondDue(currentModalDueId,'Acknowledged')">✓ Acknowledge debt</button>
-        <button class="btn btn-danger btn-sm" onclick="respondDue(currentModalDueId,'Disputed')">⚠ Raise concern / Dispute</button>
-      </div>
-    </div>`:''}
-    ${isKeeper&&d.status!=='Fully settled'?`
-    <div style="background:var(--green-bg);border:1px solid var(--green-light);border-radius:var(--radius);padding:14px;margin-bottom:16px">
-      <p style="font-size:13px;color:var(--green);font-weight:600;margin-bottom:10px">Record settlement</p>
-      <div class="form-row">
-        <div class="form-group"><label>Amount settled (EGP)</label><input type="number" id="dueSettleAmt" placeholder="0" max="${outstanding}"></div>
-        <div class="form-group"><label>Settlement date</label><input type="date" id="dueSettleDate" value="${today()}"></div>
-      </div>
-      <button class="btn btn-success btn-sm" onclick="settleDue(currentModalDueId)">Record settlement</button>
-    </div>`:''}
-    ${(()=>{
-      const subject=`KEEP — Due Notice: ${d.id}`;
-      const msg=`Dear Contact,\n\nThis is a formal notice regarding an outstanding overdue registered in the KEEP platform.\n\nOverdue ID: ${d.id}\nCreditor: ${d.creditor}\nDebtor: ${d.debtor}\nDescription: ${d.desc}\nTotal amount: ${fmt(d.amount)}\nOutstanding: ${fmt(outstanding)}\nOriginal due date: ${fmtDate(d.dueDate)}\nDays overdue: ${overdueDays}\nLate payment fine: ${fine>0?fmt(fine):'None yet'}\nStatus: ${d.status}\n\nPlease log in to review and respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
-      return notifyPanel([d.creditor,d.debtor],subject,msg);
-    })()}
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Close</button>
-    </div>
-  `);
-}
-
-async function respondDue(id, responseType){
-  const d=DUES.find(x=>x.id===id);
-  if(!d) return;
-  const response=document.getElementById('dueResponse').value.trim();
-  if(!response){ showToast('Please enter your response first','error'); return; }
-  d.status=responseType;
-  d.debtorResponse=response;
-  showLoader('Saving…'); await apiUpdate('Dues', d.id, d); hideLoader();
-  closeModal(); renderDues(); showToast(`Response recorded — marked as ${responseType}`);
-}
-
-async function settleDue(id){
-  const d=DUES.find(x=>x.id===id);
-  if(!d) return;
-  const amt=parseFloat(document.getElementById('dueSettleAmt').value)||0;
-  const date=document.getElementById('dueSettleDate').value;
-  if(!amt){ showToast('Please enter settlement amount','error'); return; }
-  d.settled=Math.min(parseFloat(d.settled)+amt, parseFloat(d.amount));
-  d.settlementDate=date;
-  if(d.settled>=parseFloat(d.amount)){ d.status='Fully settled'; }
-  else { d.status='Partially settled'; }
-  showLoader('Saving…'); await apiUpdate('Dues', d.id, d); hideLoader();
-  closeModal(); renderDues(); showToast('Settlement recorded');
-}
-
-function openNewDueModal(){
-  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
-  openModal(`
-    <h3>Register an overdue</h3>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Register an outstanding amount owed by one Group Company to another.</p>
-    <div class="form-row">
-      <div class="form-group"><label>Creditor — company owed money</label><select id="ndCreditor">${coOpts}</select></div>
-      <div class="form-group"><label>Debtor — company that owes</label><select id="ndDebtor">${coOpts}</select></div>
-    </div>
-    <div class="form-group"><label>Description of the due</label><textarea id="ndDesc" placeholder="e.g. Engineering services provided Q3 2023, Invoice #1234…"></textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label>Amount owed (EGP)</label><input type="number" id="ndAmount" placeholder="0"></div>
-      <div class="form-group"><label>Original due date</label><input type="date" id="ndDueDate" value="${today()}"></div>
-    </div>
-    <div class="form-group"><label>Amount already settled (EGP) — if any</label><input type="number" id="ndSettled" placeholder="0" value="0"></div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitNewDue()">Register overdue</button>
-    </div>
-  `);
-}
-
-async function submitNewDue(){
-  const creditor=document.getElementById('ndCreditor').value;
-  const debtor=document.getElementById('ndDebtor').value;
-  const desc=document.getElementById('ndDesc').value.trim();
-  const amount=parseFloat(document.getElementById('ndAmount').value)||0;
-  const dueDate=document.getElementById('ndDueDate').value;
-  const settled=parseFloat(document.getElementById('ndSettled').value)||0;
-  if(!desc||!amount||!dueDate){ showToast('Please fill all fields','error'); return; }
-  if(creditor===debtor){ showToast('Creditor and debtor must be different companies','error'); return; }
-  const id=`OVD-${String(DUES.length+1).padStart(3,'0')}`;
-  const newDue={id,creditor,debtor,desc,amount:parseFloat(amount),dueDate,registeredBy:currentRole==='keeper'?'keeper':'creditor',registeredDate:today(),status:'Pending response',debtorResponse:'',settlementDate:'',settled:parseFloat(settled)||0};
-  showLoader('Saving due…');
-  await apiWrite('Dues', newDue);
-  DUES.push(newDue);
-  hideLoader();
-  const subject=`KEEP — New Overdue Registered: ${id}`;
-  const msg=`Dear Contact,\n\nA new outstanding overdue has been formally registered in the KEEP platform.\n\nOverdue ID: ${id}\nCreditor (owed money): ${creditor}\nDebtor (owes money): ${debtor}\nDescription: ${desc}\nAmount: EGP ${amount.toLocaleString()}\nOriginal due date: ${dueDate}\n\nThe debtor company is requested to acknowledge or raise a concern within 5 working days.\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
-  closeModal();
-  openModal(`<h3>Overdue Registered — ${id}</h3>
-    <div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Due registered. Notify both companies below.</div>
-    ${notifyPanel([creditor,debtor],subject,msg)}
-    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderDues()">Done</button></div>`);
-  showToast('Due registered successfully');
-}
-
-// ── COMPANIES ─────────────────────────────────────────────────────────────
-function renderCompanies(){
-  const isKeeper=currentRole==='keeper';
-  document.getElementById('topbarActions').innerHTML='';
-  const rows=COMPANIES.map(c=>{
-    const ct=getContact(c);
-    const sent=REFERRALS.filter(r=>r.referring===c).length;
-    const received=REFERRALS.filter(r=>r.receiving===c).length;
-    const hasContact=ct.email||ct.phone;
-    return `<tr>
-      <td><strong>${c}</strong></td>
-      <td>${ct.name||'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
-      <td>${ct.email?`<a href="mailto:${ct.email}">${ct.email}</a>`:'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
-      <td>${ct.phone||'<span style="color:var(--text3);font-style:italic">Not set</span>'}</td>
-      <td style="text-align:center">${sent}</td>
-      <td style="text-align:center">${received}</td>
-      <td style="text-align:center">${SOURCING.filter(s=>s.buyer===c||s.provider===c).length}</td>
-      <td>
-        <div style="display:flex;gap:5px;align-items:center">
-          ${isKeeper?`<button class="btn btn-sm" onclick="editContactSafe(this)" data-co="${encodeURIComponent(c)}">Edit contact</button>`:''}
-          ${ct.email?`<a href="mailto:${ct.email}" class="btn btn-sm" style="text-decoration:none" title="Email ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg></a>`:''}
-          ${ct.phone?`<a href="${waLink(ct.phone,'Hello from KEEP platform tool.')}" target="_blank" class="btn btn-sm" style="text-decoration:none;background:var(--green-bg);color:var(--green);border-color:var(--green-light)" title="WhatsApp ${ct.name||c}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></a>`:''}
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  const missing=COMPANIES.filter(c=>{ const ct=getContact(c); return !ct.email&&!ct.phone; }).length;
-
-  let alertHtml='';
-  if(missing>0&&isKeeper) alertHtml='<div class="alert alert-amber" style="margin-bottom:16px"><strong>'+missing+' compan'+(missing===1?'y':'ies')+'</strong> have no contact set. Add contacts to enable notifications.</div>';
-  document.getElementById('mainContent').innerHTML=alertHtml+'<div class="table-wrap"><table><thead><tr><th>Company</th><th>Contact person</th><th>Email</th><th>Phone</th><th style="text-align:center">Refs sent</th><th style="text-align:center">Refs received</th><th style="text-align:center">Sourcing</th><th>Actions</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
-}
-
-function editContact(co){
-  const ct=getContact(co);
-  openModal(`
-    <h3>Edit contact — ${co}</h3>
-    <input type='hidden' id='ecCompanyId' value='${co}'>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">This person will receive email and WhatsApp notifications for all activity involving ${co}.</p>
-    <div class="form-group"><label>Contact person name</label><input type="text" id="ecName" value="${ct.name}" placeholder="e.g. Ahmed Hassan"></div>
-    <div class="form-group"><label>Email address</label><input type="email" id="ecEmail" value="${ct.email}" placeholder="e.g. ahmed.hassan@company.com"></div>
-    <div class="form-group"><label>WhatsApp phone number <span style="font-weight:400;color:var(--text3)">(include country code, e.g. +201001234567)</span></label><input type="tel" id="ecPhone" value="${ct.phone}" placeholder="+201001234567"></div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveContactModal()">Save contact</button>
-    </div>
-  `);
-}
-
-async function saveContact(co){
-  const data={
-    company:co,
-    name:document.getElementById('ecName').value.trim(),
-    email:document.getElementById('ecEmail').value.trim(),
-    phone:document.getElementById('ecPhone').value.trim()
-  };
-  showLoader('Saving contact…');
-  await apiUpdate('Contacts', co, data);
-  // Update local cache
-  const idx = CONTACTS_RAW.findIndex(r=>r.company===co);
-  if(idx>=0) CONTACTS_RAW[idx]=data; else CONTACTS_RAW.push(data);
-  hideLoader();
-  closeModal(); renderCompanies(); showToast('Contact saved for '+co);
-}
-
-// ── REPORTS ───────────────────────────────────────────────────────────────
-function renderReports(){
-  document.getElementById('topbarActions').innerHTML=`
-    <button class="btn btn-sm" onclick="exportXLSX()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export to Excel</button>
-  `;
-
-  const totalSec=REFERRALS.filter(r=>r.status==='Secured').reduce((a,r)=>a+r.secured,0);
-  const totalColl=REFERRALS.filter(r=>r.status==='Secured').reduce((a,r)=>a+r.collected,0);
-  const totalInc=Math.round(totalColl*0.005);
-  const totalPaid=REFERRALS.reduce((a,r)=>a+r.incentivePaid,0);
-  const srcCompleted=SOURCING.filter(s=>s.status==='Completed').length;
-
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
-      <div class="stat-card"><div class="stat-label">Total referrals</div><div class="stat-value">${REFERRALS.length}</div></div>
-      <div class="stat-card"><div class="stat-label">Conversion rate</div><div class="stat-value">${Math.round(REFERRALS.filter(r=>r.status==='Secured').length/REFERRALS.length*100)}%</div></div>
-      <div class="stat-card"><div class="stat-label">Business generated</div><div class="stat-value" style="font-size:17px">${fmt(totalSec)}</div></div>
-      <div class="stat-card"><div class="stat-label">Cash collected</div><div class="stat-value" style="font-size:17px">${fmt(totalColl)}</div></div>
-      <div class="stat-card"><div class="stat-label">Incentives paid</div><div class="stat-value" style="font-size:17px">${fmt(totalPaid)}</div></div>
-      <div class="stat-card"><div class="stat-label">Sourcing ratio</div><div class="stat-value">${Math.round(srcCompleted/SOURCING.length*100)}%</div><div class="stat-sub">intra-group</div></div>
-    </div>
-    <div class="card">
-      <h3 style="font-size:14px;font-weight:600;margin-bottom:6px">Export data</h3>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Click the Export to Excel button above to download all referrals, payments, and sourcing data as a multi-sheet Excel workbook.</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Referrals sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${REFERRALS.length} records</div></div>
-        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Payments sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${REFERRALS.filter(r=>r.collected>0).length} records</div></div>
-        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Sourcing sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${SOURCING.length} records</div></div>
-        <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Companies sheet</div><div style="font-size:13px;color:var(--text2);margin-top:4px">${COMPANIES.length} companies</div></div>
-      </div>
-    </div>
-  `;
-}
-
-function exportXLSX(){
-  const wb=XLSX.utils.book_new();
-
-  const refData=REFERRALS.map(r=>({
-    'Referral ID':r.id,'Date':r.date,'Referring Company':r.referring,'Receiving Company':r.receiving,
-    'Client':r.client,'Description':r.desc,'Estimated Value':r.value,'Status':r.status,
-    'Secured Amount':r.secured,'Collected Amount':r.collected,
-    'Incentive Due (0.5%)':Math.round(r.collected*0.005),'Incentive Paid':r.incentivePaid,
-    'Outstanding':Math.round(r.collected*0.005)-r.incentivePaid,'Payment Due Date':r.paymentDue||''
-  }));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(refData),'Referrals');
-
-  const payData=REFERRALS.filter(r=>r.collected>0).map(r=>{
-    const inc=Math.round(r.collected*0.005);
-    const out=inc-r.incentivePaid;
-    const fine=out>0&&r.paymentDue?calcFine(out,r.paymentDue):0;
-    return {'Referral ID':r.id,'Client':r.client,'Referring':r.referring,'Receiving':r.receiving,
-      'Collected':r.collected,'Incentive Due':inc,'Incentive Paid':r.incentivePaid,'Outstanding':out,
-      'Payment Due':r.paymentDue||'','Fine Accrued':fine,'Days Overdue':r.paymentDue?Math.max(0,daysDiff(r.paymentDue)):0};
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(payData),'Incentive Payments');
-
-  const srcData=SOURCING.map(s=>({'ID':s.id,'Date':s.date,'Buyer':s.buyer,'Provider':s.provider,
-    'Service':s.service,'Value':s.value,'Response Deadline':s.responseDeadline,'Status':s.status}));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(srcData),'Intra-Group Sourcing');
-
-  const coData=COMPANIES.map(c=>({
-    'Company':c,'Referrals Sent':REFERRALS.filter(r=>r.referring===c).length,
-    'Referrals Received':REFERRALS.filter(r=>r.receiving===c).length,
-    'Sourcing as Buyer':SOURCING.filter(s=>s.buyer===c).length,
-    'Sourcing as Provider':SOURCING.filter(s=>s.provider===c).length
-  }));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(coData),'Companies');
-
-  const duesData=DUES.map(d=>({
-    'Due ID':d.id,'Creditor':d.creditor,'Debtor':d.debtor,'Description':d.desc,
-    'Amount':d.amount,'Settled':d.settled,'Outstanding':d.amount-d.settled,
-    'Due Date':d.dueDate,'Days Overdue':Math.max(0,daysDiff(d.dueDate)),
-    'Fine Accrued':d.status!=='Fully settled'&&daysDiff(d.dueDate)>0?calcFine(d.amount-d.settled,d.dueDate):0,
-    'Status':d.status,'Debtor Response':d.debtorResponse,'Registered By':d.registeredBy,'Registered Date':d.registeredDate
-  }));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(duesData),'Group Overdue');
-
-  XLSX.writeFile(wb,`KEEP_Report_${today()}.xlsx`);
-  showToast('Excel report downloaded');
-}
-
-// ── TOAST ─────────────────────────────────────────────────────────────────
-function showToast(msg,type='success'){
-  const t=document.createElement('div');
-  t.style.cssText=`position:fixed;bottom:24px;right:24px;background:${type==='error'?'var(--red-bg)':'var(--green-bg)'};color:${type==='error'?'var(--red)':'var(--green)'};border:1px solid ${type==='error'?'var(--red-light)':'var(--green-light)'};padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.08)`;
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),3000);
-}
-
-// ── SUCCESS STORIES ──────────────────────────────────────────────────────
-function renderStories(){
-  const isKeeper=currentRole==='keeper';
-  document.getElementById('topbarActions').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openNewStoryModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add story</button>`;
-
-  if(STORIES.length===0){
-    document.getElementById('mainContent').innerHTML=`
-      <div class="empty">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <p style="font-size:15px;font-weight:600;margin-bottom:8px">No success stories yet</p>
-        <p style="font-size:13px">Be the first to register a win for the Group!</p>
-        <button class="btn btn-primary" style="margin-top:16px" onclick="openNewStoryModal()">Add first story</button>
-      </div>`;
+  if(activeTab==='rofm'){
+    renderROFM(tabHtml);
     return;
   }
 
-  const cards=STORIES.map(s=>`
-    <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div>
-          <span class="badge badge-${s.type==='Cross-sell'?'blue':s.type==='Intra-group sourcing'?'teal':s.type==='New client'?'green':'purple'}" style="margin-bottom:6px">${s.type}</span>
-          <h3 style="font-size:15px;font-weight:600;margin-top:4px">${s.title}</h3>
-        </div>
-        <span style="font-size:11px;color:var(--text3);white-space:nowrap;margin-left:12px">${fmtDate(s.date)}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr ${s.value>0?'1fr':''};gap:10px;margin-bottom:12px">
-        <div class="stat-card"><div class="stat-label">Company</div><div style="font-weight:600;margin-top:2px">${s.company}</div></div>
-        ${s.partnerCompany?`<div class="stat-card"><div class="stat-label">Partner company</div><div style="font-weight:600;margin-top:2px">${s.partnerCompany}</div></div>`:''}
-        ${s.value>0?`<div class="stat-card"><div class="stat-label">Value generated</div><div style="font-weight:600;color:var(--green);margin-top:2px">${fmt(parseFloat(s.value))}</div></div>`:''}
-      </div>
-      <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">${s.story}</p>
-      ${s.lesson?`<div style="background:var(--blue-bg);border-left:3px solid var(--blue);padding:10px 14px;border-radius:0 var(--radius) var(--radius) 0;font-size:12px;color:var(--blue)"><strong>Key lesson:</strong> ${s.lesson}</div>`:''}
-      ${isKeeper?`
-      <div style="margin-top:12px">
-        ${(()=>{
-          const subject=`KEEP — Success Story: ${s.title}`;
-          const msg=`Dear Contact,\n\nA new success story has been shared on the KEEP platform.\n\nTitle: ${s.title}\nType: ${s.type}\nCompany: ${s.company}${s.partnerCompany?'\nPartner: '+s.partnerCompany:''}${s.value>0?'\nValue: '+fmt(parseFloat(s.value)):''}\n\nStory:\n${s.story}${s.lesson?'\n\nKey lesson: '+s.lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
-          return notifyPanel([s.company,s.partnerCompany].filter(Boolean),subject,msg);
-        })()}
-      </div>`:''}
-    </div>`).join('');
+  // ── SOURCING REQUESTS TAB ────────────────────────────────────────────────
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewSourcingModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New sourcing request</button>';
 
-  document.getElementById('mainContent').innerHTML=`
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-      <div class="stat-card"><div class="stat-label">Total stories</div><div class="stat-value">${STORIES.length}</div></div>
-      <div class="stat-card"><div class="stat-label">Cross-sell wins</div><div class="stat-value">${STORIES.filter(s=>s.type==='Cross-sell').length}</div></div>
-      <div class="stat-card"><div class="stat-label">Total value shared</div><div class="stat-value" style="font-size:17px;color:var(--green)">${fmt(STORIES.reduce((a,s)=>a+(parseFloat(s.value)||0),0))}</div></div>
-      <div class="stat-card"><div class="stat-label">Companies featured</div><div class="stat-value">${new Set(STORIES.map(s=>s.company)).size}</div></div>
-    </div>
-    ${cards}
-  `;
+  let rows='';
+  SOURCING.forEach(function(s){
+    const overdue=s.status==='Pending response'&&daysDiff(s.responseDeadline)>0;
+    const statusLabel=overdue?'Overdue response':s.status;
+    let completeBtn='';
+    if(currentRole==='keeper'&&s.status!=='Completed') completeBtn='<button class="btn btn-sm" onclick="completeSourcingSafe(this)" data-id="'+s.id+'">Mark complete</button>';
+    rows+='<tr><td><strong>'+s.id+'</strong><br><span style="font-size:11px;color:var(--text3)">'+fmtDate(s.date)+'</span></td><td>'+s.buyer+'</td><td>'+s.provider+'</td><td>'+s.service+'</td><td>'+fmt(s.value)+'</td><td>'+fmtDate(s.responseDeadline)+'</td><td>'+getStatusBadge(statusLabel)+'</td><td>'+completeBtn+'</td></tr>';
+  });
+
+  const completed=SOURCING.filter(function(s){return s.status==='Completed';}).length;
+  const internalRatio=SOURCING.length>0?Math.round(completed/SOURCING.length*100):0;
+
+  document.getElementById('mainContent').innerHTML=
+    tabHtml+
+    '<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">'+
+    '<div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-value">'+SOURCING.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Completed intra-group</div><div class="stat-value">'+completed+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Intra-group ratio</div><div class="stat-value">'+internalRatio+'%</div><div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:'+internalRatio+'%"></div></div></div>'+
+    '</div>'+
+    '<div class="table-wrap"><table><thead><tr><th>ID</th><th>Buyer</th><th>Provider</th><th>Service</th><th>Value</th><th>Response deadline</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No sourcing requests yet</td></tr>')+
+    '</tbody></table></div>';
 }
 
-function openNewStoryModal(){
-  const coOpts=COMPANIES.map(c=>`<option>${c}</option>`).join('');
-  openModal(`
-    <h3>Add success story</h3>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">Share a win with the Group — a new client, a cross-sell, or a great collaboration between companies.</p>
-    <div class="form-group"><label>Story title</label><input type="text" id="nsTitle" placeholder="e.g. ARESCO wins EGP 5M contract through Asec Engineering referral"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Reporting company</label><select id="nsCompany">${coOpts}</select></div>
-      <div class="form-group"><label>Partner company (if any)</label><select id="nsPartner"><option value="">— None —</option>${coOpts}</select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Story type</label>
-        <select id="nsType">
-          <option>Cross-sell</option>
-          <option>Intra-group sourcing</option>
-          <option>New client</option>
-          <option>Cost saving</option>
-          <option>Other</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Date</label><input type="date" id="nsDate" value="${today()}"></div>
-    </div>
-    <div class="form-group"><label>Value generated (EGP) — optional</label><input type="number" id="nsValue" placeholder="0"></div>
-    <div class="form-group"><label>Tell the story</label><textarea id="nsStory" style="min-height:100px" placeholder="What happened? How did the collaboration work? What was the outcome?"></textarea></div>
-    <div class="form-group"><label>Key lesson or takeaway — optional</label><input type="text" id="nsLesson" placeholder="e.g. Early involvement of logistics team saved 3 weeks of delays"></div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitStory()">Share story</button>
-    </div>
-  `);
+function renderROFM(tabHtml){
+  const isKeeper=currentRole==='keeper';
+  document.getElementById('topbarActions').innerHTML='<button class="btn btn-primary btn-sm" onclick="openNewROFMModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Register external quote</button>';
+
+  const pendingBD=ROFM.filter(function(r){return r.status==='Pending BD approval';});
+
+  let rows='';
+  ROFM.forEach(function(r){
+    const daysLeft=Math.ceil((new Date(r.matchDeadline)-new Date())/(1000*60*60*24));
+    const expired=daysLeft<=0&&r.status==='Open';
+    const dColor=daysLeft<=3?'var(--red)':'var(--green)';
+    const deadlineLabel=r.status==='Open'?(expired?'<span style="color:var(--red);font-weight:600">Expired</span>':'<span style="color:'+dColor+'">'+daysLeft+' days left</span>'):'—';
+    const statusBadge=r.status==='Open'?'<span class="badge badge-blue">Open</span>':
+      r.status==='Matched'?'<span class="badge badge-green">Matched internally</span>':
+      r.status==='Pending BD approval'?'<span class="badge badge-amber">Pending BD approval</span>':
+      r.status==='Approved external'?'<span class="badge badge-red">Approved external</span>':
+      '<span class="badge badge-gray">'+r.status+'</span>';
+    rows+='<tr>';
+    rows+='<td><strong>'+r.id+'</strong><br><span style="font-size:11px;color:var(--text3)">'+r.requestingCompany+'</span></td>';
+    rows+='<td style="font-size:12px">'+r.serviceDesc+'</td>';
+    rows+='<td style="font-size:12px"><strong>'+fmt(parseFloat(r.externalQuote)||0)+'</strong></td>';
+    rows+='<td style="font-size:12px">'+r.externalSupplier+'</td>';
+    rows+='<td>'+deadlineLabel+'</td>';
+    rows+='<td>'+statusBadge+'</td>';
+    rows+='<td><button class="btn btn-sm" onclick="viewROFMSafe(this)" data-id="'+r.id+'">View</button></td>';
+    rows+='</tr>';
+  });
+
+  const matched=ROFM.filter(function(r){return r.status==='Matched';}).length;
+  const total=ROFM.length;
+  const saveRate=total>0?Math.round(matched/total*100):0;
+
+  document.getElementById('mainContent').innerHTML=
+    tabHtml+
+    (pendingBD.length>0&&isKeeper?'<div class="alert alert-amber" style="margin-bottom:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div><strong>'+pendingBD.length+' request(s)</strong> awaiting your approval to go external — review below</div></div>':'')+
+    '<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'+
+    '<div class="stat-card"><div class="stat-label">Total requests</div><div class="stat-value">'+total+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Matched internally</div><div class="stat-value" style="color:var(--green)">'+matched+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Pending BD approval</div><div class="stat-value" style="color:var(--amber)">'+pendingBD.length+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">Internal win rate</div><div class="stat-value" style="color:'+(saveRate>=50?'var(--green)':'var(--amber)')+'">'+saveRate+'%</div></div>'+
+    '</div>'+
+    '<div class="table-wrap" id="rofmTable"><table><thead><tr><th>ID / Company</th><th>Service required</th><th>External quote</th><th>External supplier</th><th>Match deadline</th><th>Status</th><th></th></tr></thead><tbody>'+
+    (rows||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">No right of first match requests yet</td></tr>')+
+    '</tbody></table></div>';
 }
 
-async function submitStory(){
-  const title=document.getElementById('nsTitle').value.trim();
-  const company=document.getElementById('nsCompany').value;
-  const partner=document.getElementById('nsPartner').value;
-  const type=document.getElementById('nsType').value;
-  const date=document.getElementById('nsDate').value;
-  const value=parseFloat(document.getElementById('nsValue').value)||0;
-  const story=document.getElementById('nsStory').value.trim();
-  const lesson=document.getElementById('nsLesson').value.trim();
-  if(!title||!story){ showToast('Please fill in the title and story','error'); return; }
-  const id=`STR-${String(STORIES.length+1).padStart(3,'0')}`;
-  const newStory={id,title,company,partnerCompany:partner,type,date,value,story,lesson,registeredDate:today()};
-  showLoader('Saving story…');
-  await apiWrite('Stories', newStory);
-  STORIES.push(newStory);
+function viewROFMSafe(btn){ viewROFM(btn.getAttribute('data-id')); }
+
+function viewROFM(id){
+  const r=ROFM.find(function(x){return x.id===id;});
+  if(!r) return;
+  const isKeeper=currentRole==='keeper';
+  const daysLeft=Math.ceil((new Date(r.matchDeadline)-new Date())/(1000*60*60*24));
+  const expired=daysLeft<=0;
+  const canMatchBtn=r.status==='Open'?'<button class="btn btn-success" onclick="respondROFMSafe(this.dataset.id,this.dataset.ans)" data-id="'+id+'" data-ans="Matched">✓ We can match this price</button><button class="btn btn-danger" style="margin-left:8px" onclick="respondROFMSafe(this.dataset.id,this.dataset.ans)" data-id="'+id+'" data-ans="Cannot match">✕ Cannot match</button>':'';
+  const bdApproveBtn=isKeeper&&r.status==='Pending BD approval'?
+    '<div style="background:var(--amber-bg);border:1px solid var(--amber-light);border-radius:var(--radius);padding:14px;margin-top:12px">'+
+    '<p style="font-size:13px;color:var(--amber);font-weight:600;margin-bottom:10px">No group company matched — awaiting your approval to go external.</p>'+
+    '<div style="display:flex;gap:8px">'+
+    '<button class="btn btn-danger" onclick="approveExternalSafe(this.dataset.id)" data-id="'+id+'">Approve going external</button>'+
+    '<button class="btn btn-primary" onclick="sendBackROFMSafe(this.dataset.id)" data-id="'+id+'">Send back for re-negotiation</button>'+
+    '</div></div>':'';
+
+  const responsesHtml=r.responses?(function(){
+    let h='<div style="margin-top:12px"><h4 style="font-size:13px;font-weight:600;margin-bottom:10px">Company responses</h4>';
+    try{
+      const resp=JSON.parse(r.responses);
+      resp.forEach(function(res){
+        const badge=res.answer==='Matched'?'badge-green':res.answer==='Cannot match'?'badge-red':'badge-amber';
+        h+='<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">'+res.company+'</span><span class="badge '+badge+'">'+res.answer+'</span></div>';
+      });
+    }catch(e){}
+    return h+'</div>';
+  })():'';
+
+  const subject='KEEP — Right of First Match: '+r.serviceDesc;
+  const msg='Dear Contact,\n\nA Right of First Match opportunity is available.\n\nRequesting company: '+r.requestingCompany+'\nService required: '+r.serviceDesc+'\nExternal quote: '+fmt(parseFloat(r.externalQuote)||0)+'\nExternal supplier: '+r.externalSupplier+'\nMatch deadline: '+r.matchDeadline+'\n\nPlease log in to respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together';
+
+  openModal(
+    '<h3>Right of First Match — '+r.id+'</h3>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'+
+    '<div class="stat-card"><div class="stat-label">Requesting company</div><div style="font-weight:600;margin-top:4px">'+r.requestingCompany+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">External supplier</div><div style="font-weight:600;margin-top:4px">'+r.externalSupplier+'</div></div>'+
+    '<div class="stat-card"><div class="stat-label">External quote</div><div style="font-size:20px;font-weight:700;color:var(--red);margin-top:4px">'+fmt(parseFloat(r.externalQuote)||0)+'</div></div>'+
+    (function(){var dc=expired?'var(--red)':'var(--text)';var dl=r.status==='Open'?' ('+Math.abs(daysLeft)+(expired?' days overdue':' days left')+')':'';return '<div class="stat-card"><div class="stat-label">Match deadline</div><div style="font-weight:600;margin-top:4px;color:'+dc+'">'+fmtDate(r.matchDeadline)+dl+'</div></div>';})()+
+    '</div>'+
+    '<div class="form-group"><label>Service / product required</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">'+r.serviceDesc+'</p></div>'+
+    (r.notes?'<div class="form-group"><label>Additional notes</label><p style="font-size:13px;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:var(--radius)">'+r.notes+'</p></div>':'')+
+    responsesHtml+
+    (r.status==='Open'&&canMatchBtn?'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">'+canMatchBtn+'</div>':'')+
+    bdApproveBtn+
+    notifyPanel(COMPANIES.slice(0,3),subject,msg)+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Close</button></div>'
+  );
+}
+
+async function respondROFMSafe(btnOrId, answer){
+  const id=typeof btnOrId==="string"?btnOrId:btnOrId.getAttribute("data-id");
+  if(!answer&&typeof btnOrId!=="string") answer=btnOrId.getAttribute("data-ans");
+  const r=ROFM.find(function(x){return x.id===id;});
+  if(!r) return;
+  let responses=[];
+  try{ responses=JSON.parse(r.responses||'[]'); }catch(e){}
+  const company=COMPANIES[0]; // In real use, company would be logged-in user
+  responses.push({company:company,answer:answer,date:today()});
+  r.responses=JSON.stringify(responses);
+  if(answer==='Matched') r.status='Matched';
+  showLoader('Saving response…');
+  await apiUpdate('ROFM',id,r);
   hideLoader();
-  const subject=`KEEP — New Success Story: ${title}`;
-  const msg=`Dear Contact,\n\nA new success story has been shared on the KEEP platform!\n\nTitle: ${title}\nType: ${type}\nCompany: ${company}${partner?'\nPartner: '+partner:''}${value>0?'\nValue generated: '+fmt(value):''}\n\nStory:\n${story}${lesson?'\n\nKey lesson: '+lesson:''}\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together`;
   closeModal();
-  openModal(`<h3>Story Shared! 🌟</h3>
-    <div class="alert alert-green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Success story saved. Notify the companies below.</div>
-    ${notifyPanel([company,partner].filter(Boolean),subject,msg)}
-    <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderStories()">Done</button></div>`);
-  showToast('Success story shared with the Group!');
+  renderSourcing('rofm');
+  showToast(answer==='Matched'?'Matched! Internal company wins.':'Response recorded');
 }
+
+async function approveExternalSafe(btnOrId){
+  const id=typeof btnOrId==="string"?btnOrId:btnOrId.getAttribute("data-id");
+  const r=ROFM.find(function(x){return x.id===id;});
+  if(!r) return;
+  r.status='Approved external';
+  r.bdApprovalDate=today();
+  showLoader('Saving approval…');
+  await apiUpdate('ROFM',id,r);
+  hideLoader();
+  const subject='KEEP — External Purchase Approved: '+r.serviceDesc;
+  const msg='Dear Contact,\n\nThe Group BD Director has approved proceeding with the external supplier for the following:\n\nService: '+r.serviceDesc+'\nRequesting company: '+r.requestingCompany+'\nExternal supplier: '+r.externalSupplier+'\nApproved amount: '+fmt(parseFloat(r.externalQuote)||0)+'\n\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together';
+  closeModal();
+  openModal('<h3>External purchase approved</h3>'+
+    '<div class="alert alert-red"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Approved to go external. Notify the company below.</div>'+
+    notifyPanel([r.requestingCompany],subject,msg)+
+    '<div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderSourcing(\"rofm\")">Done</button></div>');
+  showToast('External purchase approved');
+}
+
+async function sendBackROFMSafe(btnOrId){
+  const id=typeof btnOrId==="string"?btnOrId:btnOrId.getAttribute("data-id");
+  const r=ROFM.find(function(x){return x.id===id;});
+  if(!r) return;
+  r.status='Open';
+  r.matchDeadline=new Date(Date.now()+7*864e5).toISOString().split('T')[0];
+  showLoader('Sending back…');
+  await apiUpdate('ROFM',id,r);
+  hideLoader();
+  closeModal();
+  renderSourcing('rofm');
+  showToast('Sent back — deadline extended by 7 days');
+}
+
+function openNewROFMModal(){
+  const coOpts=COMPANIES.map(function(c){return '<option>'+c+'</option>';}).join('');
+  openModal('<h3>Register external quote</h3>'+
+    '<p style="font-size:13px;color:var(--text2);margin-bottom:16px">Register an external quote you have received. Group companies will have the right to match this price before you can proceed externally.</p>'+
+    '<div class="form-row"><div class="form-group"><label>Requesting company</label><select id="rfCompany">'+coOpts+'</select></div><div class="form-group"><label>External supplier name</label><input type="text" id="rfSupplier" placeholder="e.g. Siemens Egypt"></div></div>'+
+    '<div class="form-group"><label>Service / product required</label><textarea id="rfDesc" placeholder="Describe what you need in detail…"></textarea></div>'+
+    '<div class="form-row"><div class="form-group"><label>External quote amount (EGP)</label><input type="number" id="rfQuote" placeholder="0"></div><div class="form-group"><label>Match deadline</label><input type="date" id="rfDeadline" value="'+new Date(Date.now()+7*864e5).toISOString().split('T')[0]+'"></div></div>'+
+    '<div class="form-group"><label>Additional notes</label><textarea id="rfNotes" placeholder="Any other relevant details…"></textarea></div>'+
+    '<div class="modal-footer"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitROFM()">Submit</button></div>');
+}
+
+async function submitROFM(){
+  const company=document.getElementById('rfCompany').value;
+  const supplier=document.getElementById('rfSupplier').value.trim();
+  const desc=document.getElementById('rfDesc').value.trim();
+  const quote=parseFloat(document.getElementById('rfQuote').value)||0;
+  const deadline=document.getElementById('rfDeadline').value;
+  const notes=document.getElementById('rfNotes').value.trim();
+  if(!supplier||!desc||!quote||!deadline){showToast('Please fill all required fields','error');return;}
+  const id='RFM-'+String(ROFM.length+1).padStart(3,'0');
+  const newR={id,requestingCompany:company,externalSupplier:supplier,serviceDesc:desc,externalQuote:quote,matchDeadline:deadline,notes,status:'Open',responses:'[]',registeredDate:today(),bdApprovalDate:''};
+  showLoader('Registering…');
+  await apiWrite('ROFM',newR);
+  ROFM.push(newR);
+  hideLoader();
+  const subject='KEEP — Right of First Match: '+desc;
+  const msg='Dear Contact,\n\nA Right of First Match request has been registered. You have until '+deadline+' to match the external quote.\n\nRequesting company: '+company+'\nService required: '+desc+'\nExternal supplier: '+supplier+'\nExternal quote: '+fmt(quote)+'\nMatch deadline: '+deadline+'\n\nLog in to respond:\n👉 https://qalaaholdings.github.io/qalaa-framework/\n\nKEEP — The Group, Working Together';
+  closeModal();
+  openModal('<h3>Quote Registered — '+id+'</h3>'+
+    '<div class="alert alert-blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>All group companies have been notified and have until <strong>'+fmtDate(deadline)+'</strong> to match.</div>'+
+    notifyPanel(COMPANIES,subject,msg)+
+    '<div class="modal-footer"><button class="btn btn-primary" onclick="closeModal();renderSourcing(\"rofm\")">Done</button></div>');
+  showToast('Right of first match registered');
+}
+
+
+
 
 // ── INIT ──────────────────────────────────────────────────────────────────
-let STORIES = [];
-
-async function loadAllData() {
+async function loadAllData(){
   showLoader('Connecting to database…');
-  try {
-    // Initialize headers first
+  try{
     await apiInit();
-
     showLoader('Loading referrals…');
-    const refs = await apiRead('Referrals');
-    REFERRALS = refs.map(r=>({
-      ...r,
-      value: parseFloat(r.value)||0,
-      secured: parseFloat(r.secured)||0,
-      collected: parseFloat(r.collected)||0,
-      incentivePaid: parseFloat(r.incentivePaid)||0,
-    }));
-
-    showLoader('Loading sourcing requests…');
-    const srcs = await apiRead('Sourcing');
-    SOURCING = srcs.map(s=>({...s, value: parseFloat(s.value)||0}));
-
-    showLoader('Loading dues…');
-    const dues = await apiRead('Dues');
-    DUES = dues.map(d=>({
-      ...d,
-      amount: parseFloat(d.amount)||0,
-      settled: parseFloat(d.settled)||0,
-    }));
-
+    const refs=await apiRead('Referrals');
+    REFERRALS=refs.map(function(r){return Object.assign({},r,{value:parseFloat(r.value)||0,secured:parseFloat(r.secured)||0,collected:parseFloat(r.collected)||0,incentivePaid:parseFloat(r.incentivePaid)||0});});
+    showLoader('Loading sourcing…');
+    const srcs=await apiRead('Sourcing');
+    SOURCING=srcs.map(function(s){return Object.assign({},s,{value:parseFloat(s.value)||0});});
+    showLoader('Loading overdues…');
+    const dues=await apiRead('Dues');
+    DUES=dues.map(function(d){return Object.assign({},d,{amount:parseFloat(d.amount)||0,settled:parseFloat(d.settled)||0});});
     showLoader('Loading contacts…');
-    const rawContacts = await apiRead('Contacts');
-    CONTACTS_RAW = rawContacts.map(function(c){
-      return {company:String(c.company||''),name:String(c.name||''),phone:String(c.phone||''),email:String(c.email||'')};
-    });
-
-    showLoader('Loading success stories…');
-    STORIES = await apiRead('Stories');
-
+    const rawContacts=await apiRead('Contacts');
+    CONTACTS_RAW=rawContacts.map(function(c){return {company:String(c.company||''),name:String(c.name||''),phone:String(c.phone||''),email:String(c.email||'')};});
+    showLoader('Loading stories…');
+    STORIES=await apiRead('Stories');
+    showLoader('Loading right of first match…');
+    ROFM=await apiRead('ROFM');
+    showLoader('Loading exhibitions…');
+    EXHIBITIONS=await apiRead('Exhibitions');
+    showLoader('Loading customer database…');
+    const rawCust=await apiRead('Customers');
+    CUSTOMERS=rawCust.map(function(c){return Object.assign({},c,{ratingPayment:parseFloat(c.ratingPayment)||0,ratingComm:parseFloat(c.ratingComm)||0,ratingProf:parseFloat(c.ratingProf)||0,ratingGrowth:parseFloat(c.ratingGrowth)||0,ratingOverall:parseFloat(c.ratingOverall)||0});});
     hideLoader();
     updateNotifDots();
     renderDashboard();
-  } catch(err) {
+  }catch(err){
     showError('Could not connect to database. Check your internet connection.');
     console.error(err);
-    // Fallback to empty state
     hideLoader();
     updateNotifDots();
     renderDashboard();
   }
 }
-
 loadAllData();
 </script>
 </body>
